@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Click Cabs – Your Journey, Our Priority</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    :root{--blue:#01456c;--yellow:#f5a800;}
+    body{
+      font-family:'Segoe UI',sans-serif;
+      background:#0a1929;min-height:100vh;
+      display:flex;flex-direction:column;
+      align-items:center;justify-content:center;
+      padding:28px 24px;position:relative;overflow-y:auto;
+    }
+    body::before{
+      content:'';position:fixed;inset:0;
+      background:
+        radial-gradient(ellipse at 20% 50%,rgba(1,69,108,0.4),transparent 60%),
+        radial-gradient(ellipse at 80% 20%,rgba(245,168,0,0.08),transparent 50%),
+        radial-gradient(ellipse at 60% 80%,rgba(1,69,108,0.2),transparent 50%);
+      pointer-events:none;
+    }
+    .content{position:relative;z-index:1;width:100%;max-width:900px;}
+    .logo-wrap{text-align:center;margin-bottom:28px;}
+    .logo-wrap img{width:80px;height:80px;object-fit:contain;border-radius:50%;background:#fff;padding:8px;box-shadow:0 8px 32px rgba(245,168,0,0.25);margin:0 auto 16px;display:block;}
+    .logo-wrap h1{color:#fff;font-size:2.2rem;font-weight:900;letter-spacing:-0.5px;}
+    .logo-wrap h1 span{color:var(--yellow);}
+    .logo-wrap p{color:rgba(255,255,255,0.55);font-size:0.92rem;margin-top:6px;letter-spacing:2px;text-transform:uppercase;}
+    .cards-row{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:32px;}
+    .choice-card{
+      background:rgba(255,255,255,0.05);border:1.5px solid rgba(255,255,255,0.10);
+      border-radius:20px;padding:26px 22px;text-align:center;cursor:pointer;
+      transition:all 0.3s ease;position:relative;overflow:visible;backdrop-filter:blur(10px);
+    }
+    .choice-card::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity 0.3s;pointer-events:none;border-radius:20px;}
+    .user-card::before{background:radial-gradient(ellipse at top,rgba(1,69,108,0.3),transparent);}
+    .vendor-card::before{background:radial-gradient(ellipse at top,rgba(245,168,0,0.15),transparent);}
+    .choice-card:hover{border-color:rgba(255,255,255,0.25);transform:translateY(-4px);box-shadow:0 20px 50px rgba(0,0,0,0.3);}
+    .choice-card:hover::before{opacity:1;}
+    .user-card:hover{border-color:rgba(1,69,108,0.8);}
+    .vendor-card:hover{border-color:rgba(245,168,0,0.5);}
+    .card-icon{width:72px;height:72px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin:0 auto 20px;}
+    .user-card .card-icon{background:rgba(1,69,108,0.3);color:#5bb8f5;}
+    .vendor-card .card-icon{background:rgba(245,168,0,0.15);color:var(--yellow);}
+    .choice-card h2{color:#fff;font-size:1.3rem;font-weight:800;margin-bottom:8px;}
+    .choice-card p{color:rgba(255,255,255,0.55);font-size:0.85rem;line-height:1.6;margin-bottom:24px;}
+    .card-features{text-align:left;margin-bottom:28px;}
+    .feature-item{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,0.65);font-size:0.8rem;padding:5px 0;}
+    .feature-item i{font-size:0.7rem;flex-shrink:0;}
+    .user-card .feature-item i{color:#5bb8f5;}
+    .vendor-card .feature-item i{color:var(--yellow);}
+    .btn-group{display:flex;flex-direction:column;gap:10px;}
+    .btn-primary{display:block;padding:13px;border-radius:10px;font-weight:800;font-size:0.92rem;text-decoration:none;text-align:center;transition:all 0.2s;border:none;cursor:pointer;font-family:inherit;}
+    .user-card .btn-primary{background:var(--blue);color:#fff;}
+    .user-card .btn-primary:hover{background:#025a8e;}
+    .vendor-card .btn-primary{background:var(--yellow);color:var(--blue);}
+    .vendor-card .btn-primary:hover{background:#e09900;}
+    .btn-secondary{display:block;padding:12px;border-radius:10px;font-weight:700;font-size:0.88rem;text-decoration:none;text-align:center;transition:all 0.2s;background:transparent;border:1.5px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);}
+    .btn-secondary:hover{border-color:rgba(255,255,255,0.35);color:#fff;}
+    .or-divider{display:flex;align-items:center;justify-content:center;gap:16px;color:rgba(255,255,255,0.2);font-size:0.75rem;margin:4px 0;}
+    .or-divider::before,.or-divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,0.08);}
+    .bottom-links{text-align:center;}
+    .bottom-links p{color:rgba(255,255,255,0.3);font-size:0.75rem;margin-bottom:10px;}
+    .bottom-links a{color:rgba(255,255,255,0.4);font-size:0.72rem;text-decoration:none;margin:0 10px;}
+    .bottom-links a:hover{color:rgba(255,255,255,0.7);}
+    .admin-link{position:fixed;bottom:18px;right:22px;color:rgba(255,255,255,0.15);font-size:0.68rem;text-decoration:none;display:flex;align-items:center;gap:5px;transition:color 0.2s;}
+    .admin-link:hover{color:rgba(255,255,255,0.4);}
+    @media(max-width:620px){.cards-row{grid-template-columns:1fr;gap:16px;}.logo-wrap h1{font-size:1.7rem;}.choice-card{padding:26px 20px;}}
+  </style>
+</head>
+<body>
+<div class="content">
+  <div class="logo-wrap">
+    <img src="https://clickcab-7fv3.vercel.app/images/logo.jpg" alt="Click Cabs"/>
+    <h1>Click<span>Cabs</span></h1>
+    <p>Your Journey, Our Priority</p>
+  </div>
+  <div class="cards-row">
+    <div class="choice-card user-card">
+      <div class="card-icon"><i class="fas fa-user"></i></div>
+      <h2>I'm a Passenger</h2>
+      <p>Book cabs for outstation, airport transfers, local rentals and more.</p>
+      <div class="card-features">
+        <div class="feature-item"><i class="fas fa-check-circle"></i> Book outstation & airport cabs</div>
+        <div class="feature-item"><i class="fas fa-check-circle"></i> Track your bookings</div>
+        <div class="feature-item"><i class="fas fa-check-circle"></i> 24×7 customer support</div>
+        <div class="feature-item"><i class="fas fa-check-circle"></i> Verified, professional drivers</div>
+      </div>
+      <div class="btn-group">
+        <a href="user-signup.html" class="btn-primary"><i class="fas fa-user-plus" style="margin-right:7px;"></i>Create Account</a>
+        <div class="or-divider">or</div>
+        <a href="user-login.html" class="btn-secondary"><i class="fas fa-sign-in-alt" style="margin-right:7px;"></i>Log In</a>
+      </div>
+    </div>
+    <div class="choice-card vendor-card">
+      <div class="card-icon"><i class="fas fa-car"></i></div>
+      <h2>I'm a Cab Partner</h2>
+      <p>Register your vehicle, earn on your schedule, and grow with Click Cabs.</p>
+      <div class="card-features">
+        <div class="feature-item"><i class="fas fa-check-circle"></i> Earn with your own vehicle</div>
+        <div class="feature-item"><i class="fas fa-check-circle"></i> Flexible working hours</div>
+        <div class="feature-item"><i class="fas fa-check-circle"></i> Manage bookings easily</div>
+        <div class="feature-item"><i class="fas fa-check-circle"></i> Grow your fleet over time</div>
+      </div>
+      <div class="btn-group">
+        <a href="vendor-signup.html" class="btn-primary"><i class="fas fa-paper-plane" style="margin-right:7px;"></i>Apply as Partner</a>
+        <div class="or-divider">or</div>
+        <a href="vendor-login.html" class="btn-secondary"><i class="fas fa-sign-in-alt" style="margin-right:7px;"></i>Partner Login</a>
+      </div>
+    </div>
+  </div>
+  <div class="bottom-links">
+    <p>© 2026 Click Cabs. All rights reserved.</p>
+    <a href="https://clickcab-7fv3.vercel.app/home.html">Main Site</a>
+    <a href="#">Terms of Service</a>
+    <a href="#">Privacy Policy</a>
+  </div>
+</div>
+<a href="admin-login.html" class="admin-link"><i class="fas fa-shield-alt"></i> Admin</a>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  const firebaseConfig={apiKey:"AIzaSyCoITUbvm1c0-Ud9VN_jVOZg99dg42jPgY",authDomain:"clickcabs-772bd.firebaseapp.com",projectId:"clickcabs-772bd",storageBucket:"clickcabs-772bd.firebasestorage.app",messagingSenderId:"861153834886",appId:"1:861153834886:web:eae295a297c47120c31e07"};
+  const app=initializeApp(firebaseConfig);
+  const auth=getAuth(app);
+  const db=getFirestore(app);
+  onAuthStateChanged(auth,async(user)=>{
+    if(!user)return;
+    const vendorDoc=await getDoc(doc(db,"vendors",user.uid));
+    if(vendorDoc.exists()){window.location.href='vendor-dashboard.html';return;}
+    const adminDoc=await getDoc(doc(db,"admins",user.uid));
+    if(adminDoc.exists()){window.location.href='admin-dashboard.html';return;}
+    window.location.href='user-login.html';
+  });
+</script>
+</body>
+</html>

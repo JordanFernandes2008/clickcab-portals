@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Vendor Login – Click Cabs</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --blue: #01456c;
+      --yellow: #f5a800;
+      --light-bg: #f4f7fa;
+      --border: #dde3ea;
+      --text: #1a2b3c;
+      --muted: #6b7c8d;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: var(--light-bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── NAVBAR ── */
+    nav {
+      background: var(--blue);
+      padding: 0 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 65px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+      flex-shrink: 0;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .nav-logo img {
+      height: 42px;
+      width: 42px;
+      object-fit: contain;
+      border-radius: 6px;
+      background: #fff;
+      padding: 3px;
+    }
+
+    .nav-logo-text {
+      color: #fff;
+      font-size: 1.4rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    .nav-logo-text span { color: var(--yellow); }
+
+    .nav-signup-btn {
+      background: var(--yellow);
+      color: var(--blue);
+      font-weight: 700;
+      padding: 8px 22px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: opacity 0.2s;
+    }
+
+    .nav-signup-btn:hover { opacity: 0.88; }
+
+    /* ── MAIN CENTERED ── */
+    .main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 20px;
+    }
+
+    /* ── CARD ── */
+    .login-card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 6px 32px rgba(1,69,108,0.12);
+      width: 100%;
+      max-width: 440px;
+      overflow: hidden;
+    }
+
+    /* ── CARD HEADER ── */
+    .card-header {
+      background: linear-gradient(135deg, var(--blue) 60%, #025a8e 100%);
+      padding: 36px 32px 28px;
+      text-align: center;
+      color: #fff;
+    }
+
+    .card-logo {
+      width: 80px;
+      height: 80px;
+      object-fit: contain;
+      border-radius: 50%;
+      background: #fff;
+      padding: 8px;
+      margin: 0 auto 16px;
+      display: block;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.20);
+    }
+
+    .card-header h2 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+
+    .card-header p {
+      font-size: 0.88rem;
+      color: rgba(255,255,255,0.78);
+    }
+
+    /* ── CARD BODY ── */
+    .card-body {
+      padding: 32px 32px 28px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 20px;
+    }
+
+    label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    .input-wrap i {
+      position: absolute;
+      left: 13px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    input {
+      width: 100%;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 11px 14px 11px 38px;
+      font-size: 0.95rem;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      font-family: inherit;
+    }
+
+    input:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(1,69,108,0.10);
+    }
+
+    .forgot {
+      text-align: right;
+      margin-top: -12px;
+      margin-bottom: 24px;
+    }
+
+    .forgot a {
+      font-size: 0.82rem;
+      color: var(--blue);
+      text-decoration: none;
+    }
+
+    .forgot a:hover { text-decoration: underline; }
+
+    /* ── LOGIN BTN ── */
+    .login-btn {
+      width: 100%;
+      background: var(--yellow);
+      color: var(--blue);
+      font-weight: 800;
+      font-size: 1.05rem;
+      padding: 13px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s;
+      letter-spacing: 0.3px;
+    }
+
+    .login-btn:hover {
+      background: #e09900;
+      transform: translateY(-1px);
+    }
+
+    /* ── DIVIDER ── */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 24px 0;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── SIGNUP LINK ── */
+    .signup-prompt {
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .signup-prompt a {
+      color: var(--blue);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .signup-prompt a:hover { text-decoration: underline; }
+
+    /* ── BACK TO SITE ── */
+    .back-link {
+      text-align: center;
+      padding: 16px;
+      border-top: 1px solid var(--border);
+      font-size: 0.85rem;
+      background: #fafcff;
+    }
+
+    .back-link a {
+      color: var(--muted);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .back-link a:hover { color: var(--blue); }
+
+    /* ── ERROR MSG ── */
+    .error-msg {
+      display: none;
+      background: #fff0f0;
+      border: 1px solid #f5c6c6;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.88rem;
+      color: #c0392b;
+      margin-bottom: 18px;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 480px) {
+      .card-body { padding: 24px 20px 20px; }
+      .card-header { padding: 28px 20px 22px; }
+      nav { padding: 0 18px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav>
+  <a href="index.html" class="nav-logo">
+    <img src="https://clickcab-7fv3.vercel.app/images/logo.jpg" alt="Click Cabs Logo" />
+    <span class="nav-logo-text">Click<span>Cabs</span></span>
+  </a>
+  <a href="vendor-signup.html" class="nav-signup-btn">Sign Up</a>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="login-card">
+
+    <!-- HEADER -->
+    <div class="card-header">
+      <img src="https://clickcab-7fv3.vercel.app/images/logo.jpg" alt="Click Cabs" class="card-logo" />
+      <h2>Vendor Portal</h2>
+      <p>Log in to manage your Click Cabs fleet</p>
+    </div>
+
+    <!-- BODY -->
+    <div class="card-body">
+
+      <!-- Error message (shown on wrong credentials) -->
+      <div class="error-msg" id="errorMsg">
+        <i class="fas fa-exclamation-circle"></i>
+        <span>Invalid email or password. Please try again.</span>
+      </div>
+
+      <div class="form-group">
+        <label>Email Address</label>
+        <div class="input-wrap">
+          <i class="fas fa-envelope"></i>
+          <input type="email" id="loginEmail" placeholder="you@company.com" required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Password</label>
+        <div class="input-wrap">
+          <i class="fas fa-lock"></i>
+          <input type="password" id="loginPassword" placeholder="Enter your password" required />
+        </div>
+      </div>
+
+      <div class="forgot">
+        <a href="#">Forgot password?</a>
+      </div>
+
+      <button class="login-btn" id="loginBtn">
+        <i class="fas fa-sign-in-alt" style="margin-right:8px;"></i>
+        Log In
+      </button>
+
+      <div class="divider">or</div>
+
+      <p class="signup-prompt">
+        New vendor? <a href="vendor-signup.html">Create an account</a>
+      </p>
+
+    </div>
+
+    <!-- BACK LINK -->
+    <div class="back-link">
+      <a href="index.html">
+        <i class="fas fa-arrow-left"></i> Back to Click Cabs website
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<!-- Firebase SDKs -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCoITUbvm1c0-Ud9VN_jVOZg99dg42jPgY",
+    authDomain: "clickcabs-772bd.firebaseapp.com",
+    projectId: "clickcabs-772bd",
+    storageBucket: "clickcabs-772bd.firebasestorage.app",
+    messagingSenderId: "861153834886",
+    appId: "1:861153834886:web:eae295a297c47120c31e07",
+    measurementId: "G-0Z06RPDWJR"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  async function handleLogin() {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value.trim();
+    const errorMsg = document.getElementById('errorMsg');
+    const btn = document.getElementById('loginBtn');
+
+    errorMsg.style.display = 'none';
+
+    if (!email || !password) {
+      errorMsg.style.display = 'flex';
+      errorMsg.querySelector('span').textContent = 'Please enter both email and password.';
+      return;
+    }
+
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i>Logging in…';
+    btn.disabled = true;
+
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      window.location.href = 'index.html';
+    } catch (error) {
+      btn.innerHTML = '<i class="fas fa-sign-in-alt" style="margin-right:8px;"></i>Log In';
+      btn.disabled = false;
+      errorMsg.style.display = 'flex';
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        errorMsg.querySelector('span').textContent = 'Invalid email or password. Please try again.';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMsg.querySelector('span').textContent = 'Too many attempts. Please wait a moment and try again.';
+      } else {
+        errorMsg.querySelector('span').textContent = 'Error: ' + error.message;
+      }
+    }
+  }
+
+  // Wire button and Enter key inside module
+  document.getElementById('loginBtn').addEventListener('click', handleLogin);
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') handleLogin();
+  });
+</script>
+
+</body>
+</html>

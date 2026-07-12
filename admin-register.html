@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Registration – Click Cabs</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --blue: #01456c; --yellow: #f5a800; --border: #dde3ea; --text: #1a2b3c; --muted: #6b7c8d; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0d1f2d;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; margin-bottom: 28px;
+    }
+    .brand img { height: 44px; width: 44px; object-fit: contain; border-radius: 8px; background: #fff; padding: 4px; }
+    .brand-text { color: #fff; font-size: 1.4rem; font-weight: 800; }
+    .brand-text span { color: var(--yellow); }
+
+    .card {
+      background: #fff; border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+      width: 100%; max-width: 440px; overflow: hidden;
+    }
+
+    .card-header {
+      background: linear-gradient(135deg, #0d1f2d, #01456c);
+      padding: 28px 32px 22px; text-align: center;
+    }
+    .admin-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(245,168,0,0.15); border: 1px solid var(--yellow);
+      border-radius: 20px; padding: 4px 14px;
+      font-size: 0.72rem; font-weight: 700;
+      color: var(--yellow); text-transform: uppercase;
+      letter-spacing: 0.8px; margin-bottom: 14px;
+    }
+    .card-header h2 { color: #fff; font-size: 1.3rem; font-weight: 800; margin-bottom: 4px; }
+    .card-header p { color: rgba(255,255,255,0.6); font-size: 0.8rem; line-height: 1.5; }
+
+    .card-body { padding: 26px 32px 30px; }
+
+    .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    label { font-size: 0.78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .input-wrap { position: relative; }
+    .input-wrap i.icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 0.85rem; pointer-events: none; }
+    .toggle-pw {
+      position: absolute; right: 13px; top: 50%; transform: translateY(-50%);
+      color: var(--muted); font-size: 0.85rem; cursor: pointer; background: none; border: none;
+    }
+    input {
+      width: 100%; border: 1.5px solid var(--border); border-radius: 8px;
+      padding: 11px 38px; font-size: 0.92rem; color: var(--text);
+      outline: none; font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(1,69,108,0.10); }
+    input.secret { letter-spacing: 0.15em; }
+
+    .secret-note {
+      background: #fffbea; border: 1px solid #f5e4a0;
+      border-radius: 8px; padding: 10px 14px;
+      font-size: 0.8rem; color: #7a5c00;
+      margin-bottom: 16px;
+      display: flex; align-items: flex-start; gap: 8px;
+    }
+    .secret-note i { margin-top: 1px; flex-shrink: 0; }
+
+    .divider {
+      display: flex; align-items: center; gap: 10px;
+      margin: 18px 0; color: var(--muted); font-size: 0.75rem;
+    }
+    .divider::before, .divider::after { content:''; flex:1; height:1px; background: var(--border); }
+
+    .error-msg {
+      display: none; background: #fff0f0; border: 1px solid #f5c6c6;
+      border-radius: 8px; padding: 10px 14px;
+      font-size: 0.83rem; color: #c0392b;
+      margin-bottom: 14px; align-items: center; gap: 8px;
+    }
+    .success-msg {
+      display: none; background: #e8f7ef; border: 1px solid #a8dfc0;
+      border-radius: 8px; padding: 10px 14px;
+      font-size: 0.83rem; color: #1a7f4b;
+      margin-bottom: 14px; align-items: center; gap: 8px;
+    }
+
+    .register-btn {
+      width: 100%; background: var(--yellow); color: var(--blue);
+      font-weight: 800; font-size: 1rem; padding: 13px;
+      border: none; border-radius: 8px; cursor: pointer;
+      font-family: inherit; transition: background 0.2s, transform 0.15s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .register-btn:hover { background: #e09900; transform: translateY(-1px); }
+    .register-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .login-link {
+      text-align: center; margin-top: 18px;
+      font-size: 0.82rem; color: var(--muted);
+    }
+    .login-link a { color: var(--blue); font-weight: 700; text-decoration: none; }
+    .login-link a:hover { text-decoration: underline; }
+
+    .security-note {
+      text-align: center; margin-top: 16px;
+      font-size: 0.72rem; color: var(--muted);
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+    }
+    .security-note i { color: #1a7f4b; }
+
+    .footer-note { color: rgba(255,255,255,0.25); font-size: 0.7rem; margin-top: 22px; text-align: center; }
+
+    @media (max-width: 440px) {
+      .card-body { padding: 20px 18px 24px; }
+      .card-header { padding: 22px 18px 18px; }
+    }
+  </style>
+</head>
+<body>
+
+<a href="admin-login.html" class="brand">
+  <img src="https://clickcab-7fv3.vercel.app/images/logo.jpg" alt="Click Cabs" />
+  <span class="brand-text">Click<span>Cabs</span></span>
+</a>
+
+<div class="card">
+  <div class="card-header">
+    <div class="admin-badge"><i class="fas fa-user-shield"></i> Admin Registration</div>
+    <h2>Create Admin Account</h2>
+    <p>This page is restricted. You need the secret admin code to register.</p>
+  </div>
+
+  <div class="card-body">
+
+    <div class="error-msg" id="errorMsg">
+      <i class="fas fa-exclamation-circle"></i>
+      <span id="errorText">Something went wrong.</span>
+    </div>
+    <div class="success-msg" id="successMsg">
+      <i class="fas fa-check-circle"></i>
+      <span>Admin account created successfully! Redirecting to login…</span>
+    </div>
+
+    <div class="form-group">
+      <label>Full Name <span style="color:#e03d3d;">*</span></label>
+      <div class="input-wrap">
+        <i class="icon fas fa-user"></i>
+        <input type="text" id="fullName" placeholder="e.g. Suraj Balke" />
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Admin Email <span style="color:#e03d3d;">*</span></label>
+      <div class="input-wrap">
+        <i class="icon fas fa-envelope"></i>
+        <input type="email" id="adminEmail" placeholder="admin@clickcabs.in" />
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Password <span style="color:#e03d3d;">*</span></label>
+      <div class="input-wrap">
+        <i class="icon fas fa-lock"></i>
+        <input type="password" id="adminPassword" placeholder="Min. 8 characters" />
+        <button type="button" class="toggle-pw" onclick="togglePw('adminPassword', this)">
+          <i class="fas fa-eye"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Confirm Password <span style="color:#e03d3d;">*</span></label>
+      <div class="input-wrap">
+        <i class="icon fas fa-lock"></i>
+        <input type="password" id="confirmPassword" placeholder="Repeat password" />
+      </div>
+    </div>
+
+    <div class="divider">Secret Code Required</div>
+
+    <div class="secret-note">
+      <i class="fas fa-key"></i>
+      <span>Enter the secret admin code provided by Click Cabs management. Without it, registration will fail.</span>
+    </div>
+
+    <div class="form-group">
+      <label>Secret Admin Code <span style="color:#e03d3d;">*</span></label>
+      <div class="input-wrap">
+        <i class="icon fas fa-key"></i>
+        <input type="password" id="secretCode" class="secret" placeholder="Enter secret code" />
+        <button type="button" class="toggle-pw" onclick="togglePw('secretCode', this)">
+          <i class="fas fa-eye"></i>
+        </button>
+      </div>
+    </div>
+
+    <button class="register-btn" id="registerBtn">
+      <i class="fas fa-user-plus"></i> Create Admin Account
+    </button>
+
+    <div class="login-link">
+      Already have an account? <a href="admin-login.html">Sign in here</a>
+    </div>
+
+    <div class="security-note">
+      <i class="fas fa-lock"></i> Authorised personnel only — activity is logged
+    </div>
+
+  </div>
+</div>
+
+<p class="footer-note">© 2026 Click Cabs. All rights reserved.</p>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCoITUbvm1c0-Ud9VN_jVOZg99dg42jPgY",
+    authDomain: "clickcabs-772bd.firebaseapp.com",
+    projectId: "clickcabs-772bd",
+    storageBucket: "clickcabs-772bd.firebasestorage.app",
+    messagingSenderId: "861153834886",
+    appId: "1:861153834886:web:eae295a297c47120c31e07"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // ── CHANGE THIS TO YOUR OWN SECRET CODE ──
+  const ADMIN_SECRET = "ClickCabs@Admin2026";
+  // ─────────────────────────────────────────
+
+  window.togglePw = function(id, btn) {
+    const input = document.getElementById(id);
+    const isText = input.type === 'text';
+    input.type = isText ? 'password' : 'text';
+    btn.innerHTML = isText ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+  };
+
+  function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    document.getElementById('errorText').textContent = msg;
+    el.style.display = 'flex';
+    document.getElementById('successMsg').style.display = 'none';
+  }
+
+  async function handleRegister() {
+    const fullName = document.getElementById('fullName').value.trim();
+    const email = document.getElementById('adminEmail').value.trim();
+    const password = document.getElementById('adminPassword').value;
+    const confirmPw = document.getElementById('confirmPassword').value;
+    const secretCode = document.getElementById('secretCode').value;
+
+    document.getElementById('errorMsg').style.display = 'none';
+
+    if (!fullName || !email || !password || !confirmPw || !secretCode) {
+      showError('Please fill in all fields.'); return;
+    }
+    if (password !== confirmPw) {
+      showError('Passwords do not match.'); return;
+    }
+    if (password.length < 8) {
+      showError('Password must be at least 8 characters.'); return;
+    }
+    if (secretCode !== ADMIN_SECRET) {
+      showError('Incorrect secret code. Contact Click Cabs management.'); return;
+    }
+
+    const btn = document.getElementById('registerBtn');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating account…';
+    btn.disabled = true;
+
+    try {
+      // Create Firebase Auth account
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const uid = userCredential.user.uid;
+
+      // Add to admins collection
+      await setDoc(doc(db, "admins", uid), {
+        fullName: fullName,
+        email: email,
+        role: "admin",
+        createdAt: new Date().toISOString()
+      });
+
+      // Show success
+      document.getElementById('successMsg').style.display = 'flex';
+      btn.style.display = 'none';
+      setTimeout(() => { window.location.href = 'admin-login.html'; }, 2500);
+
+    } catch (error) {
+      btn.innerHTML = '<i class="fas fa-user-plus"></i> Create Admin Account';
+      btn.disabled = false;
+      if (error.code === 'auth/email-already-in-use') {
+        showError('This email is already registered.');
+      } else if (error.code === 'auth/invalid-email') {
+        showError('Please enter a valid email address.');
+      } else {
+        showError('Error: ' + error.message);
+      }
+    }
+  }
+
+  document.getElementById('registerBtn').addEventListener('click', handleRegister);
+  document.addEventListener('keydown', e => { if (e.key === 'Enter') handleRegister(); });
+</script>
+
+</body>
+</html>

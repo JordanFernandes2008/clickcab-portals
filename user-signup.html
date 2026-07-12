@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Create Account – Click Cabs</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    :root { --blue:#01456c; --yellow:#f5a800; --border:#dde3ea; --text:#1a2b3c; --muted:#6b7c8d; }
+    body { font-family:'Segoe UI',sans-serif; background:#f4f7fa; min-height:100vh; display:flex; flex-direction:column; }
+    nav { background:var(--blue); padding:0 40px; display:flex; align-items:center; justify-content:space-between; height:65px; box-shadow:0 2px 8px rgba(0,0,0,0.18); }
+    .nav-logo { display:flex; align-items:center; gap:10px; text-decoration:none; }
+    .nav-logo img { height:42px; width:42px; object-fit:contain; border-radius:6px; background:#fff; padding:3px; }
+    .nav-logo-text { color:#fff; font-size:1.4rem; font-weight:800; }
+    .nav-logo-text span { color:var(--yellow); }
+    .nav-link { color:rgba(255,255,255,0.8); font-size:0.88rem; text-decoration:none; }
+    .nav-link:hover { color:#fff; }
+
+    .main { flex:1; display:flex; align-items:center; justify-content:center; padding:40px 20px; }
+    .card { background:#fff; border-radius:16px; box-shadow:0 6px 32px rgba(1,69,108,0.12); width:100%; max-width:480px; overflow:hidden; }
+    .card-header { background:linear-gradient(135deg,var(--blue),#025a8e); padding:32px; text-align:center; }
+    .card-header img { width:60px; height:60px; border-radius:50%; background:#fff; padding:6px; object-fit:contain; margin-bottom:14px; box-shadow:0 4px 16px rgba(0,0,0,0.15); }
+    .card-header h2 { color:#fff; font-size:1.4rem; font-weight:800; margin-bottom:4px; }
+    .card-header p { color:rgba(255,255,255,0.72); font-size:0.83rem; }
+    .card-body { padding:28px 32px 32px; }
+
+    .form-group { display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
+    label { font-size:0.78rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; }
+    .req { color:#e03d3d; }
+    .input-wrap { position:relative; }
+    .input-wrap i.ico { position:absolute; left:13px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:0.85rem; pointer-events:none; }
+    input { width:100%; border:1.5px solid var(--border); border-radius:8px; padding:11px 14px 11px 38px; font-size:0.92rem; color:var(--text); outline:none; font-family:inherit; transition:border-color 0.2s,box-shadow 0.2s; }
+    input:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(1,69,108,0.10); }
+
+    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+
+    .error-msg { display:none; background:#fff0f0; border:1px solid #f5c6c6; border-radius:8px; padding:10px 14px; font-size:0.83rem; color:#c0392b; margin-bottom:14px; align-items:center; gap:8px; }
+    .success-msg { display:none; background:#e8f7ef; border:1px solid #a8dfc0; border-radius:8px; padding:10px 14px; font-size:0.83rem; color:#1a7f4b; margin-bottom:14px; align-items:center; gap:8px; }
+
+    .signup-btn { width:100%; background:var(--yellow); color:var(--blue); font-weight:800; font-size:1rem; padding:13px; border:none; border-radius:8px; cursor:pointer; font-family:inherit; transition:background 0.2s; display:flex; align-items:center; justify-content:center; gap:8px; }
+    .signup-btn:hover { background:#e09900; }
+    .signup-btn:disabled { opacity:0.6; cursor:not-allowed; }
+
+    .terms { font-size:0.78rem; color:var(--muted); text-align:center; margin-bottom:16px; }
+    .terms a { color:var(--blue); }
+    .login-prompt { text-align:center; margin-top:18px; font-size:0.85rem; color:var(--muted); }
+    .login-prompt a { color:var(--blue); font-weight:700; text-decoration:none; }
+    .login-prompt a:hover { text-decoration:underline; }
+
+    .divider { display:flex; align-items:center; gap:10px; margin:18px 0; color:var(--muted); font-size:0.75rem; }
+    .divider::before,.divider::after { content:''; flex:1; height:1px; background:var(--border); }
+
+    @media(max-width:480px) { .card-body { padding:22px 18px 26px; } .form-row { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+<nav>
+  <a href="index.html" class="nav-logo">
+    <img src="https://clickcab-7fv3.vercel.app/images/logo.jpg" alt="Click Cabs"/>
+    <span class="nav-logo-text">Click<span>Cabs</span></span>
+  </a>
+  <a href="https://clickcab-7fv3.vercel.app/home.html" class="nav-link"><i class="fas fa-arrow-left" style="margin-right:5px;"></i>Back to site</a>
+</nav>
+
+<div class="main">
+  <div class="card">
+    <div class="card-header">
+      <img src="https://clickcab-7fv3.vercel.app/images/logo.jpg" alt="Click Cabs"/>
+      <h2>Create Your Account</h2>
+      <p>Book cabs across India — fast, safe, and reliable</p>
+    </div>
+    <div class="card-body">
+      <div class="error-msg" id="errorMsg"><i class="fas fa-exclamation-circle"></i><span id="errorText"></span></div>
+      <div class="success-msg" id="successMsg"><i class="fas fa-check-circle"></i><span>Account created! Redirecting…</span></div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>First Name <span class="req">*</span></label>
+          <div class="input-wrap"><i class="fas fa-user ico"></i><input type="text" id="firstName" placeholder="Rahul"/></div>
+        </div>
+        <div class="form-group">
+          <label>Last Name <span class="req">*</span></label>
+          <div class="input-wrap"><i class="fas fa-user ico"></i><input type="text" id="lastName" placeholder="Sharma"/></div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Mobile Number <span class="req">*</span></label>
+        <div class="input-wrap"><i class="fas fa-phone ico"></i><input type="tel" id="phone" placeholder="+91 98765 43210"/></div>
+      </div>
+
+      <div class="form-group">
+        <label>Email Address <span class="req">*</span></label>
+        <div class="input-wrap"><i class="fas fa-envelope ico"></i><input type="email" id="email" placeholder="you@gmail.com"/></div>
+      </div>
+
+      <div class="form-group">
+        <label>Password <span class="req">*</span></label>
+        <div class="input-wrap"><i class="fas fa-lock ico"></i><input type="password" id="password" placeholder="Min. 8 characters"/></div>
+      </div>
+
+      <div class="form-group">
+        <label>Confirm Password <span class="req">*</span></label>
+        <div class="input-wrap"><i class="fas fa-lock ico"></i><input type="password" id="confirmPw" placeholder="Repeat password"/></div>
+      </div>
+
+      <p class="terms">By signing up you agree to Click Cabs' <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.</p>
+
+      <button class="signup-btn" id="signupBtn"><i class="fas fa-user-plus"></i> Create Account</button>
+
+      <div class="login-prompt">Already have an account? <a href="user-login.html">Log in</a></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCoITUbvm1c0-Ud9VN_jVOZg99dg42jPgY",
+    authDomain: "clickcabs-772bd.firebaseapp.com",
+    projectId: "clickcabs-772bd",
+    storageBucket: "clickcabs-772bd.firebasestorage.app",
+    messagingSenderId: "861153834886",
+    appId: "1:861153834886:web:eae295a297c47120c31e07"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  await setPersistence(auth, browserLocalPersistence);
+
+  function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    document.getElementById('errorText').textContent = msg;
+    el.style.display = 'flex';
+    document.getElementById('successMsg').style.display = 'none';
+  }
+
+  async function handleSignup() {
+    const firstName = document.getElementById('firstName').value.trim();
+    const lastName = document.getElementById('lastName').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const confirmPw = document.getElementById('confirmPw').value;
+
+    document.getElementById('errorMsg').style.display = 'none';
+
+    if (!firstName || !lastName || !phone || !email || !password || !confirmPw) { showError('Please fill in all fields.'); return; }
+    if (password !== confirmPw) { showError('Passwords do not match.'); return; }
+    if (password.length < 8) { showError('Password must be at least 8 characters.'); return; }
+
+    const btn = document.getElementById('signupBtn');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating account…';
+    btn.disabled = true;
+
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      await setDoc(doc(db, "users", cred.user.uid), {
+        firstName, lastName, phone, email,
+        createdAt: new Date().toISOString(),
+        role: "user"
+      });
+      document.getElementById('successMsg').style.display = 'flex';
+      setTimeout(() => { window.location.href = 'home.html'; }, 2000);
+    } catch (err) {
+      btn.innerHTML = '<i class="fas fa-user-plus"></i> Create Account';
+      btn.disabled = false;
+      if (err.code === 'auth/email-already-in-use') showError('This email is already registered. Please log in.');
+      else if (err.code === 'auth/invalid-email') showError('Please enter a valid email address.');
+      else showError('Error: ' + err.message);
+    }
+  }
+
+  document.getElementById('signupBtn').addEventListener('click', handleSignup);
+  document.addEventListener('keydown', e => { if (e.key === 'Enter') handleSignup(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Vendor Sign Up – Click Cabs</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --blue: #01456c;
+      --yellow: #f5a800;
+      --light-bg: #f4f7fa;
+      --border: #dde3ea;
+      --text: #1a2b3c;
+      --muted: #6b7c8d;
+    }
+    body { font-family: 'Segoe UI', sans-serif; background: var(--light-bg); color: var(--text); min-height: 100vh; }
+
+    /* NAV */
+    nav {
+      background: var(--blue); padding: 0 40px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 65px; position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-logo img { height: 42px; width: 42px; object-fit: contain; border-radius: 6px; background: #fff; padding: 3px; }
+    .nav-logo-text { color: #fff; font-size: 1.4rem; font-weight: 800; letter-spacing: 0.5px; }
+    .nav-logo-text span { color: var(--yellow); }
+    .nav-login-btn {
+      background: var(--yellow); color: var(--blue); font-weight: 700;
+      padding: 8px 22px; border-radius: 6px; text-decoration: none;
+      font-size: 0.9rem; transition: opacity 0.2s;
+    }
+    .nav-login-btn:hover { opacity: 0.88; }
+
+    /* HERO */
+    .hero {
+      background: linear-gradient(135deg, var(--blue) 60%, #025a8e 100%);
+      color: #fff; text-align: center; padding: 44px 20px 38px;
+    }
+    .hero-logo {
+      width: 72px; height: 72px; object-fit: contain; border-radius: 50%;
+      background: #fff; padding: 6px; margin-bottom: 16px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.18); display: block;
+      margin-left: auto; margin-right: auto;
+    }
+    .hero h1 { font-size: 2rem; font-weight: 800; margin-bottom: 10px; }
+    .hero h1 span { color: var(--yellow); }
+    .hero p { font-size: 1rem; color: rgba(255,255,255,0.82); max-width: 520px; margin: 0 auto; }
+
+    /* STEPS INDICATOR */
+    .steps-bar {
+      background: #fff; border-bottom: 1px solid var(--border);
+      padding: 18px 40px; display: flex; justify-content: center; gap: 0;
+    }
+    .step-item { display: flex; align-items: center; gap: 10px; }
+    .step-circle {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--border); color: var(--muted);
+      font-weight: 800; font-size: 0.85rem;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-circle.active { background: var(--blue); color: #fff; }
+    .step-circle.done { background: #1a7f4b; color: #fff; }
+    .step-label { font-size: 0.8rem; font-weight: 600; color: var(--muted); white-space: nowrap; }
+    .step-label.active { color: var(--blue); }
+    .step-connector { width: 50px; height: 2px; background: var(--border); margin: 0 8px; flex-shrink: 0; }
+    .step-connector.done { background: #1a7f4b; }
+
+    /* FORM */
+    .form-wrapper { max-width: 860px; margin: 36px auto 60px; padding: 0 20px; }
+    .form-card { background: #fff; border-radius: 14px; box-shadow: 0 4px 24px rgba(1,69,108,0.10); overflow: hidden; }
+    .section-header {
+      background: var(--blue); color: #fff; padding: 14px 32px;
+      font-size: 1rem; font-weight: 700; letter-spacing: 0.4px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .section-header i { color: var(--yellow); font-size: 1.05rem; }
+    .section-body { padding: 28px 32px 24px; border-bottom: 1px solid var(--border); }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 28px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+    label { font-size: 0.82rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    label .req { color: #e03d3d; margin-left: 2px; }
+    input, select, textarea {
+      border: 1.5px solid var(--border); border-radius: 8px;
+      padding: 11px 14px; font-size: 0.95rem; color: var(--text);
+      background: #fff; transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none; width: 100%; font-family: inherit;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--blue); box-shadow: 0 0 0 3px rgba(1,69,108,0.10);
+    }
+    select { appearance: none; cursor: pointer; }
+    .hint { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+    /* INFO BOX */
+    .info-box {
+      background: #f0f7ff; border: 1px solid #c5ddf7;
+      border-radius: 8px; padding: 12px 16px;
+      font-size: 0.83rem; color: #01456c;
+      margin: 0 32px 20px; display: flex; gap: 10px; align-items: flex-start;
+    }
+    .info-box i { margin-top: 2px; flex-shrink: 0; }
+
+    /* FOOTER */
+    .form-footer { padding: 24px 32px 32px; text-align: center; background: #fafcff; }
+    .note { font-size: 0.83rem; color: var(--muted); margin-bottom: 18px; }
+    .note a { color: var(--blue); text-decoration: underline; }
+    .submit-btn {
+      background: var(--yellow); color: var(--blue); font-weight: 800;
+      font-size: 1.05rem; padding: 14px 52px; border: none;
+      border-radius: 8px; cursor: pointer; transition: background 0.2s, transform 0.15s;
+    }
+    .submit-btn:hover { background: #e09900; transform: translateY(-1px); }
+    .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .login-link { margin-top: 16px; font-size: 0.88rem; color: var(--muted); }
+    .login-link a { color: var(--blue); font-weight: 600; text-decoration: none; }
+    .login-link a:hover { text-decoration: underline; }
+
+    @media (max-width: 620px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .section-body { padding: 20px 18px; }
+      .form-footer { padding: 20px 18px 28px; }
+      .hero h1 { font-size: 1.5rem; }
+      nav { padding: 0 18px; }
+      .steps-bar { padding: 14px 16px; gap: 0; }
+      .step-connector { width: 24px; }
+      .step-label { display: none; }
+      .info-box { margin: 0 18px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav>
+  <a href="index.html" class="nav-logo">
+    <img src="https://clickcab-7fv3.vercel.app/images/logo.jpg" alt="Click Cabs Logo" />
+    <span class="nav-logo-text">Click<span>Cabs</span></span>
+  </a>
+  <a href="vendor-login.html" class="nav-login-btn">Vendor Login</a>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <img src="https://clickcab-7fv3.vercel.app/images/logo.jpg" alt="Click Cabs" class="hero-logo" />
+  <h1>Become a Click Cabs <span>Partner</span></h1>
+  <p>Register your vehicle with Click Cabs. Earn more, drive on your schedule.</p>
+</div>
+
+<!-- STEPS -->
+<div class="steps-bar">
+  <div class="step-item">
+    <div class="step-circle active">1</div>
+    <span class="step-label active">Your Details</span>
+  </div>
+  <div class="step-connector"></div>
+  <div class="step-item">
+    <div class="step-circle">2</div>
+    <span class="step-label">Vehicle Info</span>
+  </div>
+  <div class="step-connector"></div>
+  <div class="step-item">
+    <div class="step-circle">3</div>
+    <span class="step-label">Verification</span>
+  </div>
+  <div class="step-connector"></div>
+  <div class="step-item">
+    <div class="step-circle">4</div>
+    <span class="step-label">Under Review</span>
+  </div>
+</div>
+
+<!-- FORM -->
+<div class="form-wrapper">
+  <div class="form-card">
+
+    <!-- SECTION 1: PERSONAL DETAILS -->
+    <div class="section-header">
+      <i class="fas fa-user"></i> Personal Details
+    </div>
+    <div class="section-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>First Name <span class="req">*</span></label>
+          <input type="text" id="firstName" placeholder="e.g. Ramesh" required />
+        </div>
+        <div class="form-group">
+          <label>Last Name <span class="req">*</span></label>
+          <input type="text" id="lastName" placeholder="e.g. Sharma" required />
+        </div>
+        <div class="form-group">
+          <label>Mobile Number <span class="req">*</span></label>
+          <input type="tel" id="phone" placeholder="+91 98765 43210" required />
+          <span class="hint">You'll receive updates on this number</span>
+        </div>
+        <div class="form-group">
+          <label>Email Address <span class="req">*</span></label>
+          <input type="email" id="email" placeholder="you@gmail.com" required />
+        </div>
+        <div class="form-group">
+          <label>Password <span class="req">*</span></label>
+          <input type="password" id="password" placeholder="Min. 8 characters" required />
+        </div>
+        <div class="form-group">
+          <label>Confirm Password <span class="req">*</span></label>
+          <input type="password" id="confirmPassword" placeholder="Repeat password" required />
+        </div>
+        <div class="form-group">
+          <label>City You Operate In <span class="req">*</span></label>
+          <input type="text" id="operatingCity" placeholder="e.g. Mumbai" required />
+        </div>
+        <div class="form-group">
+          <label>Driver Type <span class="req">*</span></label>
+          <select id="driverType" required>
+            <option value="" disabled selected>Select</option>
+            <option value="owner-driver">Owner Driver (I drive my own car)</option>
+            <option value="fleet-owner">Fleet Owner (I have multiple cars)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 2: VEHICLE DETAILS -->
+    <div class="section-header">
+      <i class="fas fa-car"></i> Vehicle Details
+    </div>
+    <div class="section-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Vehicle Type <span class="req">*</span></label>
+          <select id="vehicleType" required>
+            <option value="" disabled selected>Select vehicle type</option>
+            <option>Hatchback (WagonR, Swift, etc.)</option>
+            <option>Sedan (Dzire, Amaze, etc.)</option>
+            <option>SUV (Ertiga, Innova, etc.)</option>
+            <option>Luxury (Innova Crysta, etc.)</option>
+            <option>Tempo Traveller (12+ seater)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Vehicle Make & Model <span class="req">*</span></label>
+          <input type="text" id="vehicleModel" placeholder="e.g. Maruti Swift Dzire" required />
+        </div>
+        <div class="form-group">
+          <label>Year of Manufacture <span class="req">*</span></label>
+          <input type="number" id="vehicleYear" placeholder="e.g. 2020" min="2000" max="2026" required />
+        </div>
+        <div class="form-group">
+          <label>Vehicle Registration Number <span class="req">*</span></label>
+          <input type="text" id="regNumber" placeholder="e.g. MH01AB1234" required />
+          <span class="hint">As per RC book</span>
+        </div>
+        <div class="form-group">
+          <label>Seating Capacity <span class="req">*</span></label>
+          <select id="seatingCapacity" required>
+            <option value="" disabled selected>Select</option>
+            <option>4 Seater</option>
+            <option>6 Seater</option>
+            <option>7 Seater</option>
+            <option>12 Seater</option>
+            <option>17 Seater</option>
+            <option>20+ Seater</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Fuel Type <span class="req">*</span></label>
+          <select id="fuelType" required>
+            <option value="" disabled selected>Select</option>
+            <option>Petrol</option>
+            <option>Diesel</option>
+            <option>CNG</option>
+            <option>Electric</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>AC Available? <span class="req">*</span></label>
+          <select id="acAvailable" required>
+            <option value="" disabled selected>Select</option>
+            <option value="yes">Yes — AC</option>
+            <option value="no">No — Non AC</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Number of Vehicles <span class="req">*</span></label>
+          <input type="number" id="vehicleCount" placeholder="e.g. 1" min="1" required />
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 3: ID & DOCUMENTS -->
+    <div class="section-header">
+      <i class="fas fa-id-card"></i> ID & Verification
+    </div>
+    <div class="info-box">
+      <i class="fas fa-info-circle"></i>
+      <span>Your documents will be verified by our team before approval. You'll be asked to upload actual document photos after this step.</span>
+    </div>
+    <div class="section-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Aadhaar Number <span class="req">*</span></label>
+          <input type="text" id="aadhaar" placeholder="XXXX XXXX XXXX" maxlength="14" required />
+        </div>
+        <div class="form-group">
+          <label>PAN Number <span class="req">*</span></label>
+          <input type="text" id="pan" placeholder="ABCDE1234F" maxlength="10" required />
+        </div>
+        <div class="form-group">
+          <label>Driving Licence Number <span class="req">*</span></label>
+          <input type="text" id="dlNumber" placeholder="MH-0120XXXXXXXXXX" required />
+        </div>
+        <div class="form-group">
+          <label>Licence Expiry Date <span class="req">*</span></label>
+          <input type="date" id="dlExpiry" required />
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 4: ADDRESS -->
+    <div class="section-header">
+      <i class="fas fa-map-marker-alt"></i> Residential Address
+    </div>
+    <div class="section-body">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Address Line 1 <span class="req">*</span></label>
+          <input type="text" id="addr1" placeholder="Building / Street name" required />
+        </div>
+        <div class="form-group full">
+          <label>Address Line 2</label>
+          <input type="text" id="addr2" placeholder="Area / Landmark (optional)" />
+        </div>
+        <div class="form-group">
+          <label>City <span class="req">*</span></label>
+          <input type="text" id="city" placeholder="Mumbai" required />
+        </div>
+        <div class="form-group">
+          <label>State <span class="req">*</span></label>
+          <input type="text" id="state" placeholder="Maharashtra" required />
+        </div>
+        <div class="form-group">
+          <label>PIN Code <span class="req">*</span></label>
+          <input type="text" id="pin" placeholder="400001" maxlength="6" required />
+        </div>
+        <div class="form-group">
+          <label>Country <span class="req">*</span></label>
+          <input type="text" id="country" value="India" required />
+        </div>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="form-footer">
+      <p class="note">
+        By registering you agree to Click Cabs'
+        <a href="#">Partner Terms</a> and <a href="#">Privacy Policy</a>.
+        Your details are safe with us.
+      </p>
+      <button class="submit-btn" id="signupBtn">
+        <i class="fas fa-paper-plane" style="margin-right:8px;"></i>Submit Application
+      </button>
+      <p class="login-link">Already a partner? <a href="vendor-login.html">Log in here</a></p>
+    </div>
+
+  </div>
+</div>
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCoITUbvm1c0-Ud9VN_jVOZg99dg42jPgY",
+    authDomain: "clickcabs-772bd.firebaseapp.com",
+    projectId: "clickcabs-772bd",
+    storageBucket: "clickcabs-772bd.firebasestorage.app",
+    messagingSenderId: "861153834886",
+    appId: "1:861153834886:web:eae295a297c47120c31e07",
+    measurementId: "G-0Z06RPDWJR"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  async function handleSignup() {
+    const required = [
+      'firstName','lastName','phone','email','password','confirmPassword',
+      'operatingCity','driverType','vehicleType','vehicleModel','vehicleYear',
+      'regNumber','seatingCapacity','fuelType','acAvailable','vehicleCount',
+      'aadhaar','pan','dlNumber','dlExpiry',
+      'addr1','city','state','pin','country'
+    ];
+
+    for (let id of required) {
+      const el = document.getElementById(id);
+      if (!el.value.trim()) {
+        el.focus();
+        el.style.borderColor = '#e03d3d';
+        setTimeout(() => el.style.borderColor = '', 2500);
+        alert('Please fill in all required fields.');
+        return;
+      }
+    }
+
+    const email = document.getElementById('email').value.trim();
+    const pwd = document.getElementById('password').value;
+    const cpwd = document.getElementById('confirmPassword').value;
+    if (pwd !== cpwd) { alert('Passwords do not match.'); return; }
+    if (pwd.length < 8) { alert('Password must be at least 8 characters.'); return; }
+
+    const aadhaar = document.getElementById('aadhaar').value.replace(/\s/g,'');
+    if (aadhaar.length !== 12 || isNaN(aadhaar)) { alert('Please enter a valid 12-digit Aadhaar number.'); return; }
+
+    const pan = document.getElementById('pan').value.trim().toUpperCase();
+    if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(pan)) { alert('Please enter a valid PAN number (e.g. ABCDE1234F).'); return; }
+
+    const btn = document.getElementById('signupBtn');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i>Submitting…';
+    btn.disabled = true;
+
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, pwd);
+      const uid = userCredential.user.uid;
+
+      await setDoc(doc(db, "vendors", uid), {
+        firstName: document.getElementById('firstName').value.trim(),
+        lastName: document.getElementById('lastName').value.trim(),
+        phone: document.getElementById('phone').value.trim(),
+        email: email,
+        operatingCity: document.getElementById('operatingCity').value.trim(),
+        driverType: document.getElementById('driverType').value,
+        vehicleType: document.getElementById('vehicleType').value,
+        vehicleModel: document.getElementById('vehicleModel').value.trim(),
+        vehicleYear: document.getElementById('vehicleYear').value.trim(),
+        registrationNumber: document.getElementById('regNumber').value.trim().toUpperCase(),
+        seatingCapacity: document.getElementById('seatingCapacity').value,
+        fuelType: document.getElementById('fuelType').value,
+        acAvailable: document.getElementById('acAvailable').value,
+        numberOfVehicles: document.getElementById('vehicleCount').value.trim(),
+        aadhaarNumber: aadhaar,
+        panNumber: pan,
+        dlNumber: document.getElementById('dlNumber').value.trim().toUpperCase(),
+        dlExpiry: document.getElementById('dlExpiry').value,
+        addressLine1: document.getElementById('addr1').value.trim(),
+        addressLine2: document.getElementById('addr2').value.trim(),
+        city: document.getElementById('city').value.trim(),
+        state: document.getElementById('state').value.trim(),
+        pinCode: document.getElementById('pin').value.trim(),
+        country: document.getElementById('country').value.trim(),
+        status: "pending",
+        createdAt: new Date().toISOString()
+      });
+
+      window.location.href = 'vendor-thankyou.html';
+
+    } catch (error) {
+      btn.innerHTML = '<i class="fas fa-paper-plane" style="margin-right:8px;"></i>Submit Application';
+      btn.disabled = false;
+      if (error.code === 'auth/email-already-in-use') {
+        alert('This email is already registered. Please log in instead.');
+      } else if (error.code === 'auth/invalid-email') {
+        alert('Please enter a valid email address.');
+      } else {
+        alert('Error: ' + error.message);
+      }
+    }
+  }
+
+  document.getElementById('signupBtn').addEventListener('click', handleSignup);
+</script>
+
+</body>
+</html>
