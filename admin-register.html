@@ -223,27 +223,10 @@
 
 <p class="footer-note">© 2026 Click Cabs. All rights reserved.</p>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyCoITUbvm1c0-Ud9VN_jVOZg99dg42jPgY",
-    authDomain: "clickcabs-772bd.firebaseapp.com",
-    projectId: "clickcabs-772bd",
-    storageBucket: "clickcabs-772bd.firebasestorage.app",
-    messagingSenderId: "861153834886",
-    appId: "1:861153834886:web:eae295a297c47120c31e07"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-
-  // ── CHANGE THIS TO YOUR OWN SECRET CODE ──
-  const ADMIN_SECRET = "ClickCabs@Admin2026";
-  // ─────────────────────────────────────────
+<script>
+  // NOTE: There is no Firebase SDK and no secret code in this file anymore.
+  // Account creation now happens server-side in /api/create-admin.js, which
+  // is the only place the secret code (stored as a Vercel env var) is checked.
 
   window.togglePw = function(id, btn) {
     const input = document.getElementById(id);
@@ -277,26 +260,21 @@
     if (password.length < 8) {
       showError('Password must be at least 8 characters.'); return;
     }
-    if (secretCode !== ADMIN_SECRET) {
-      showError('Incorrect secret code. Contact Click Cabs management.'); return;
-    }
-
     const btn = document.getElementById('registerBtn');
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating account…';
     btn.disabled = true;
 
     try {
-      // Create Firebase Auth account
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const uid = userCredential.user.uid;
-
-      // Add to admins collection
-      await setDoc(doc(db, "admins", uid), {
-        fullName: fullName,
-        email: email,
-        role: "admin",
-        createdAt: new Date().toISOString()
+      const response = await fetch('/api/create-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fullName, email, password, secretCode })
       });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Something went wrong.');
+      }
 
       // Show success
       document.getElementById('successMsg').style.display = 'flex';
@@ -306,13 +284,7 @@
     } catch (error) {
       btn.innerHTML = '<i class="fas fa-user-plus"></i> Create Admin Account';
       btn.disabled = false;
-      if (error.code === 'auth/email-already-in-use') {
-        showError('This email is already registered.');
-      } else if (error.code === 'auth/invalid-email') {
-        showError('Please enter a valid email address.');
-      } else {
-        showError('Error: ' + error.message);
-      }
+      showError(error.message);
     }
   }
 
