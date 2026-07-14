@@ -395,7 +395,7 @@
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      window.location.href = 'index.html';
+      window.location.href = 'vendor-dashboard.html';
     } catch (error) {
       btn.innerHTML = '<i class="fas fa-sign-in-alt" style="margin-right:8px;"></i>Log In';
       btn.disabled = false;
