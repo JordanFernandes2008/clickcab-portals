@@ -134,7 +134,7 @@
     if(vendorDoc.exists()){window.location.href='vendor-dashboard.html';return;}
     const adminDoc=await getDoc(doc(db,"admins",user.uid));
     if(adminDoc.exists()){window.location.href='admin-dashboard.html';return;}
-    window.location.href='user-login.html';
+    window.location.href = 'https://clickcab-7fv3.vercel.app/home.html';
   });
 </script>
 </body>
