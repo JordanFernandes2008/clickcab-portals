@@ -120,22 +120,13 @@
   </div>
 </div>
 <a href="admin-login.html" class="admin-link"><i class="fas fa-shield-alt"></i> Admin</a>
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-  const firebaseConfig={apiKey:"AIzaSyCoITUbvm1c0-Ud9VN_jVOZg99dg42jPgY",authDomain:"clickcabs-772bd.firebaseapp.com",projectId:"clickcabs-772bd",storageBucket:"clickcabs-772bd.firebasestorage.app",messagingSenderId:"861153834886",appId:"1:861153834886:web:eae295a297c47120c31e07"};
-  const app=initializeApp(firebaseConfig);
-  const auth=getAuth(app);
-  const db=getFirestore(app);
-  onAuthStateChanged(auth,async(user)=>{
-    if(!user)return;
-    const vendorDoc=await getDoc(doc(db,"vendors",user.uid));
-    if(vendorDoc.exists()){window.location.href='vendor-dashboard.html';return;}
-    const adminDoc=await getDoc(doc(db,"admins",user.uid));
-    if(adminDoc.exists()){window.location.href='admin-dashboard.html';return;}
-    window.location.href = 'https://clickcab-7fv3.vercel.app/home.html';
-  });
-</script>
+<!--
+  NOTE: This page previously ran a Firebase onAuthStateChanged check on load that
+  silently redirected any already-logged-in user straight to home.html (or vendor/admin
+  dashboards). Because that check is async, the browser painted this page first, then
+  jumped away a beat later -- that's the "flash to index.html then bounce to home.html"
+  behavior. It has been removed so this page is a static landing/chooser and stays put
+  regardless of login state. See chat notes for the tradeoff this creates.
+-->
 </body>
 </html>
