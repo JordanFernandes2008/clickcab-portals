@@ -1,491 +1,71 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin Dashboard – Click Cabs</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    :root { --blue: #01456c; --yellow: #f5a800; --border: #dde3ea; --text: #1a2b3c; --muted: #6b7c8d; --bg: #f4f7fa; }
-    body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+const admin = require('firebase-admin');
 
-    .topbar {
-      background: var(--blue); height: 60px; padding: 0 28px;
-      display: flex; align-items: center; justify-content: space-between;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2); position: sticky; top: 0; z-index: 100;
-    }
-    .topbar-left { display: flex; align-items: center; gap: 12px; }
-    .topbar-left img { height: 36px; width: 36px; border-radius: 6px; background: #fff; padding: 3px; object-fit: contain; }
-    .topbar-title { color: #fff; font-weight: 800; font-size: 1.1rem; }
-    .topbar-title span { color: var(--yellow); }
-    .admin-chip {
-      background: rgba(245,168,0,0.15); border: 1px solid var(--yellow);
-      color: var(--yellow); font-size: 0.68rem; font-weight: 700;
-      padding: 3px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px;
-    }
-    .topbar-right { display: flex; align-items: center; gap: 14px; }
-    .admin-name { color: rgba(255,255,255,0.8); font-size: 0.85rem; }
-    .logout-btn {
-      background: rgba(255,255,255,0.1); color: #fff;
-      border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
-      padding: 6px 14px; font-size: 0.8rem; cursor: pointer;
-      font-family: inherit; transition: background 0.2s;
-      display: flex; align-items: center; gap: 6px;
-    }
-    .logout-btn:hover { background: rgba(255,255,255,0.2); }
-
-    .content { max-width: 1150px; margin: 0 auto; padding: 28px 20px; }
-
-    /* STATS */
-    .stats-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-bottom: 28px; }
-    .stat-card {
-      background: #fff; border-radius: 12px; padding: 16px 18px;
-      box-shadow: 0 2px 12px rgba(1,69,108,0.07);
-      display: flex; align-items: center; gap: 12px;
-    }
-    .stat-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
-    .stat-icon.blue { background: #e8f1f8; color: var(--blue); }
-    .stat-icon.yellow { background: #fff8e6; color: #d48e00; }
-    .stat-icon.green { background: #e8f7ef; color: #1a7f4b; }
-    .stat-icon.red { background: #fdf0f0; color: #c0392b; }
-    .stat-icon.orange { background: #fff3e8; color: #e07b00; }
-    .stat-icon.grey { background: #f0f4f8; color: #6b7c8d; }
-    .stat-num { font-size: 1.5rem; font-weight: 900; color: var(--text); line-height: 1; }
-    .stat-label { font-size: 0.68rem; color: var(--muted); margin-top: 2px; font-weight: 600; text-transform: uppercase; }
-
-    /* FILTERS */
-    .filters-bar {
-      background: #fff; border-radius: 10px; padding: 14px 20px;
-      display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
-      box-shadow: 0 2px 8px rgba(1,69,108,0.06); flex-wrap: wrap;
-    }
-    .filter-btn {
-      padding: 6px 14px; border-radius: 20px; font-size: 0.78rem;
-      font-weight: 700; cursor: pointer; border: 1.5px solid var(--border);
-      background: #fff; color: var(--muted); font-family: inherit; transition: all 0.2s;
-    }
-    .filter-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
-    .filter-btn:hover:not(.active) { border-color: var(--blue); color: var(--blue); }
-    .search-input-wrap { position: relative; margin-left: auto; }
-    .search-input-wrap i { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 0.85rem; }
-    .search-input {
-      border: 1.5px solid var(--border); border-radius: 8px;
-      padding: 8px 14px 8px 34px; font-size: 0.82rem;
-      font-family: inherit; outline: none; width: 220px; transition: border-color 0.2s;
-    }
-    .search-input:focus { border-color: var(--blue); }
-
-    /* TABLE */
-    .table-wrap { background: #fff; border-radius: 12px; box-shadow: 0 2px 12px rgba(1,69,108,0.07); overflow: hidden; }
-    .table-header { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-    .table-header h3 { font-size: 0.95rem; font-weight: 800; }
-    .table-header span { font-size: 0.8rem; color: var(--muted); }
-    table { width: 100%; border-collapse: collapse; }
-    thead th {
-      background: #f8fafc; padding: 11px 14px; text-align: left;
-      font-size: 0.7rem; font-weight: 700; color: var(--muted);
-      text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border);
-    }
-    tbody tr { border-bottom: 1px solid #f0f4f8; transition: background 0.15s; }
-    tbody tr:last-child { border-bottom: none; }
-    tbody tr:hover { background: #f8fafc; }
-    td { padding: 12px 14px; font-size: 0.83rem; vertical-align: middle; }
-    .vendor-name { font-weight: 700; }
-    .vendor-sub { font-size: 0.73rem; color: var(--muted); margin-top: 1px; }
-
-    /* BADGES */
-    .badge {
-      display: inline-flex; align-items: center; gap: 4px;
-      padding: 3px 9px; border-radius: 20px;
-      font-size: 0.7rem; font-weight: 700; white-space: nowrap;
-    }
-    .badge.pending { background: #fff8e6; color: #d48e00; }
-    .badge.approved { background: #e8f7ef; color: #1a7f4b; }
-    .badge.rejected { background: #fdf0f0; color: #c0392b; }
-    .badge.restricted { background: #fff0e6; color: #c05000; }
-    .badge.reverify { background: #f0eaff; color: #6b21d6; }
-    .badge.old { background: #f0f4f8; color: #4a6070; }
-
-    .btn-view {
-      padding: 5px 12px; border-radius: 6px; font-size: 0.76rem;
-      font-weight: 700; cursor: pointer; border: none; font-family: inherit;
-      background: #e8f1f8; color: var(--blue); transition: background 0.2s;
-    }
-    .btn-view:hover { background: #d0e4f4; }
-
-    .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
-    .empty-state i { font-size: 2.5rem; margin-bottom: 14px; display: block; }
-    .loading { text-align: center; padding: 60px; color: var(--muted); }
-    .loading i { font-size: 1.8rem; margin-bottom: 12px; display: block; color: var(--blue); }
-
-    /* MODAL */
-    .modal-overlay {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.6); z-index: 200;
-      align-items: center; justify-content: center; padding: 16px;
-    }
-    .modal-overlay.open { display: flex; }
-    .modal {
-      background: #fff; border-radius: 16px;
-      max-width: 700px; width: 100%; max-height: 92vh;
-      overflow-y: auto; box-shadow: 0 24px 60px rgba(0,0,0,0.3);
-    }
-    .modal-header {
-      background: var(--blue); padding: 18px 24px;
-      display: flex; align-items: center; justify-content: space-between;
-      position: sticky; top: 0; z-index: 10;
-    }
-    .modal-header h3 { color: #fff; font-size: 0.98rem; font-weight: 800; }
-    .modal-close {
-      background: rgba(255,255,255,0.15); border: none; color: #fff;
-      width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
-      font-size: 0.9rem; display: flex; align-items: center; justify-content: center;
-    }
-    .modal-body { padding: 22px 24px; }
-    .detail-section { margin-bottom: 20px; }
-    .detail-section h4 {
-      font-size: 0.7rem; font-weight: 700; color: var(--muted);
-      text-transform: uppercase; letter-spacing: 0.5px;
-      margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border);
-    }
-    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .detail-item label { font-size: 0.7rem; color: var(--muted); font-weight: 600; display: block; margin-bottom: 2px; }
-    .detail-item span { font-size: 0.85rem; color: var(--text); font-weight: 600; }
-
-    /* STATUS ACTIONS */
-    .status-actions {
-      padding: 0 24px 20px;
-      border-top: 1px solid var(--border);
-      padding-top: 18px;
-    }
-    .status-actions h4 {
-      font-size: 0.72rem; font-weight: 700; color: var(--muted);
-      text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;
-    }
-    .action-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 14px; }
-    .action-btn {
-      padding: 10px 8px; border-radius: 8px; font-size: 0.78rem;
-      font-weight: 700; cursor: pointer; border: none; font-family: inherit;
-      display: flex; align-items: center; justify-content: center; gap: 6px;
-      transition: all 0.2s;
-    }
-    .action-btn.approve { background: #e8f7ef; color: #1a7f4b; border: 1.5px solid #a8dfc0; }
-    .action-btn.approve:hover { background: #1a7f4b; color: #fff; }
-    .action-btn.reject { background: #fdf0f0; color: #c0392b; border: 1.5px solid #f5c6c6; }
-    .action-btn.reject:hover { background: #c0392b; color: #fff; }
-    .action-btn.restrict { background: #fff0e6; color: #c05000; border: 1.5px solid #fcd0a8; }
-    .action-btn.restrict:hover { background: #c05000; color: #fff; }
-    .action-btn.reverify { background: #f0eaff; color: #6b21d6; border: 1.5px solid #d4b8ff; }
-    .action-btn.reverify:hover { background: #6b21d6; color: #fff; }
-    .action-btn.old { background: #f0f4f8; color: #4a6070; border: 1.5px solid #c8d8e4; }
-    .action-btn.old:hover { background: #4a6070; color: #fff; }
-
-    /* REASON BOX */
-    .reason-box {
-      display: none; background: #f8fafc; border: 1.5px solid var(--border);
-      border-radius: 10px; padding: 16px; margin-top: 10px;
-    }
-    .reason-box label { font-size: 0.78rem; font-weight: 700; color: var(--text); display: block; margin-bottom: 8px; }
-    .reason-box textarea {
-      width: 100%; border: 1.5px solid var(--border); border-radius: 8px;
-      padding: 10px 12px; font-family: inherit; font-size: 0.85rem;
-      resize: none; min-height: 80px; outline: none;
-      transition: border-color 0.2s;
-    }
-    .reason-box textarea:focus { border-color: var(--blue); }
-    .reason-submit-btn {
-      margin-top: 10px; padding: 9px 22px; border-radius: 6px;
-      font-size: 0.82rem; font-weight: 700; cursor: pointer;
-      border: none; font-family: inherit; color: #fff;
-      background: var(--blue); transition: background 0.2s;
-    }
-    .reason-submit-btn:hover { background: #025a8e; }
-
-    @media (max-width: 900px) {
-      .stats-row { grid-template-columns: repeat(3, 1fr); }
-      .action-grid { grid-template-columns: 1fr 1fr; }
-      .detail-grid { grid-template-columns: 1fr; }
-    }
-    @media (max-width: 600px) {
-      .stats-row { grid-template-columns: 1fr 1fr; }
-      .filters-bar { gap: 6px; }
-      .search-input-wrap { margin-left: 0; width: 100%; }
-      .search-input { width: 100%; }
-    }
-  </style>
-</head>
-<body>
-
-<div class="topbar">
-  <div class="topbar-left">
-    <img src="https://clickcab-7fv3.vercel.app/images/logo.jpg" alt="Click Cabs" />
-    <span class="topbar-title">Click<span>Cabs</span></span>
-    <span class="admin-chip"><i class="fas fa-shield-alt"></i> Admin</span>
-  </div>
-  <div class="topbar-right">
-    <span class="admin-name" id="adminName">Loading…</span>
-    <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
-  </div>
-</div>
-
-<div class="content">
-  <!-- STATS -->
-  <div class="stats-row">
-    <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-users"></i></div><div><div class="stat-num" id="statTotal">–</div><div class="stat-label">Total</div></div></div>
-    <div class="stat-card"><div class="stat-icon yellow"><i class="fas fa-clock"></i></div><div><div class="stat-num" id="statPending">–</div><div class="stat-label">Pending</div></div></div>
-    <div class="stat-card"><div class="stat-icon green"><i class="fas fa-check-circle"></i></div><div><div class="stat-num" id="statApproved">–</div><div class="stat-label">Approved</div></div></div>
-    <div class="stat-card"><div class="stat-icon red"><i class="fas fa-times-circle"></i></div><div><div class="stat-num" id="statRejected">–</div><div class="stat-label">Rejected</div></div></div>
-    <div class="stat-card"><div class="stat-icon orange"><i class="fas fa-ban"></i></div><div><div class="stat-num" id="statRestricted">–</div><div class="stat-label">Restricted</div></div></div>
-    <div class="stat-card"><div class="stat-icon grey"><i class="fas fa-redo"></i></div><div><div class="stat-num" id="statReverify">–</div><div class="stat-label">Reverify</div></div></div>
-  </div>
-
-  <!-- FILTERS -->
-  <div class="filters-bar">
-    <button class="filter-btn active" onclick="filterVendors('all',this)">All</button>
-    <button class="filter-btn" onclick="filterVendors('pending',this)">Pending</button>
-    <button class="filter-btn" onclick="filterVendors('approved',this)">Approved</button>
-    <button class="filter-btn" onclick="filterVendors('rejected',this)">Rejected</button>
-    <button class="filter-btn" onclick="filterVendors('restricted',this)">Restricted</button>
-    <button class="filter-btn" onclick="filterVendors('reverify',this)">Reverify</button>
-    <button class="filter-btn" onclick="filterVendors('old',this)">Old</button>
-    <div class="search-input-wrap">
-      <i class="fas fa-search"></i>
-      <input type="text" class="search-input" id="searchInput" placeholder="Search name, city, vehicle…" oninput="searchVendors()" />
-    </div>
-  </div>
-
-  <!-- TABLE -->
-  <div class="table-wrap">
-    <div class="table-header">
-      <h3>Vendor Applications</h3>
-      <span id="tableCount">Loading…</span>
-    </div>
-    <div id="tableContent">
-      <div class="loading"><i class="fas fa-spinner fa-spin"></i><p>Loading…</p></div>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL -->
-<div class="modal-overlay" id="modalOverlay">
-  <div class="modal">
-    <div class="modal-header">
-      <h3 id="modalTitle">Vendor Details</h3>
-      <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
-    </div>
-    <div class="modal-body" id="modalBody"></div>
-    <div class="status-actions" id="statusActions"></div>
-    <div class="reason-box" id="reasonBox">
-      <label id="reasonLabel">Reason</label>
-      <textarea id="reasonText" placeholder="Enter reason…"></textarea>
-      <button class="reason-submit-btn" id="reasonSubmitBtn">Confirm</button>
-    </div>
-  </div>
-</div>
-
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, collection, getDocs, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyCoITUbvm1c0-Ud9VN_jVOZg99dg42jPgY",
-    authDomain: "clickcabs-772bd.firebaseapp.com",
-    projectId: "clickcabs-772bd",
-    storageBucket: "clickcabs-772bd.firebasestorage.app",
-    messagingSenderId: "861153834886",
-    appId: "1:861153834886:web:eae295a297c47120c31e07"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-
-  let allVendors = [];
-  let currentFilter = 'all';
-  let pendingAction = null;
-  let currentVendorId = null;
-
-  const statusIcons = {
-    pending: 'clock', approved: 'check', rejected: 'times',
-    restricted: 'ban', reverify: 'redo', old: 'archive'
-  };
-
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) { window.location.href = 'admin-login.html'; return; }
-    const adminDoc = await getDoc(doc(db, "admins", user.uid));
-    if (!adminDoc.exists()) { await signOut(auth); window.location.href = 'admin-login.html'; return; }
-    document.getElementById('adminName').textContent = user.email;
-    loadVendors();
+// Initialize the Admin SDK once per running function instance.
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      // Vercel env vars store newlines as literal "\n" -- convert them back.
+      privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
+    }),
   });
+}
 
-  document.getElementById('logoutBtn').addEventListener('click', async () => {
-    await signOut(auth); window.location.href = 'admin-login.html';
-  });
+const db = admin.firestore();
 
-  async function loadVendors() {
-    const snapshot = await getDocs(collection(db, "vendors"));
-    allVendors = [];
-    snapshot.forEach(d => allVendors.push({ id: d.id, ...d.data() }));
-    allVendors.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    updateStats(); renderTable(allVendors);
+module.exports = async (req, res) => {
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed.' });
+    return;
   }
 
-  function updateStats() {
-    document.getElementById('statTotal').textContent = allVendors.length;
-    document.getElementById('statPending').textContent = allVendors.filter(v => v.status === 'pending').length;
-    document.getElementById('statApproved').textContent = allVendors.filter(v => v.status === 'approved').length;
-    document.getElementById('statRejected').textContent = allVendors.filter(v => v.status === 'rejected').length;
-    document.getElementById('statRestricted').textContent = allVendors.filter(v => v.status === 'restricted').length;
-    document.getElementById('statReverify').textContent = allVendors.filter(v => v.status === 'reverify').length;
-  }
+  try {
+    const { fullName, email, password, secretCode } = req.body || {};
 
-  function renderTable(vendors) {
-    document.getElementById('tableCount').textContent = vendors.length + ' record(s)';
-    if (!vendors.length) {
-      document.getElementById('tableContent').innerHTML = `<div class="empty-state"><i class="fas fa-inbox"></i><p>No records found.</p></div>`;
+    if (!fullName || !email || !password || !secretCode) {
+      res.status(400).json({ error: 'Please fill in all fields.' });
       return;
     }
-    const rows = vendors.map(v => `
-      <tr>
-        <td><div class="vendor-name">${v.firstName||''} ${v.lastName||''}</div><div class="vendor-sub">${v.email||''}</div></td>
-        <td>${v.phone||'–'}</td>
-        <td><div>${v.vehicleModel||'–'}</div><div class="vendor-sub">${v.registrationNumber||''}</div></td>
-        <td>${v.operatingCity||'–'}</td>
-        <td><span class="badge ${v.status||'pending'}"><i class="fas fa-${statusIcons[v.status]||'clock'}"></i> ${(v.status||'pending').charAt(0).toUpperCase()+(v.status||'pending').slice(1)}</span></td>
-        <td>${v.createdAt ? new Date(v.createdAt).toLocaleDateString('en-IN') : '–'}</td>
-        <td><button class="btn-view" onclick="openModal('${v.id}')"><i class="fas fa-eye"></i> View</button></td>
-      </tr>`).join('');
-    document.getElementById('tableContent').innerHTML = `
-      <table><thead><tr>
-        <th>Vendor</th><th>Phone</th><th>Vehicle</th><th>City</th><th>Status</th><th>Applied</th><th>Action</th>
-      </tr></thead><tbody>${rows}</tbody></table>`;
-  }
-
-  window.filterVendors = function(status, btn) {
-    currentFilter = status;
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active'); applyFilters();
-  };
-  window.searchVendors = function() { applyFilters(); };
-
-  function applyFilters() {
-    const q = document.getElementById('searchInput').value.toLowerCase();
-    let filtered = currentFilter === 'all' ? allVendors : allVendors.filter(v => v.status === currentFilter);
-    if (q) filtered = filtered.filter(v =>
-      (v.firstName+' '+v.lastName).toLowerCase().includes(q) ||
-      (v.email||'').toLowerCase().includes(q) ||
-      (v.operatingCity||'').toLowerCase().includes(q) ||
-      (v.vehicleModel||'').toLowerCase().includes(q) ||
-      (v.registrationNumber||'').toLowerCase().includes(q));
-    renderTable(filtered);
-  }
-
-  window.openModal = function(vendorId) {
-    currentVendorId = vendorId;
-    const v = allVendors.find(x => x.id === vendorId);
-    if (!v) return;
-    document.getElementById('modalTitle').textContent = `${v.firstName} ${v.lastName}`;
-    document.getElementById('reasonBox').style.display = 'none';
-    document.getElementById('reasonText').value = '';
-
-    document.getElementById('modalBody').innerHTML = `
-      <div class="detail-section"><h4>Personal</h4><div class="detail-grid">
-        <div class="detail-item"><label>Full Name</label><span>${v.firstName} ${v.lastName}</span></div>
-        <div class="detail-item"><label>Phone</label><span>${v.phone||'–'}</span></div>
-        <div class="detail-item"><label>Email</label><span>${v.email||'–'}</span></div>
-        <div class="detail-item"><label>Operating City</label><span>${v.operatingCity||'–'}</span></div>
-        <div class="detail-item"><label>Driver Type</label><span>${v.driverType||'–'}</span></div>
-        <div class="detail-item"><label>Applied</label><span>${v.createdAt ? new Date(v.createdAt).toLocaleString('en-IN') : '–'}</span></div>
-      </div></div>
-      <div class="detail-section"><h4>Vehicle</h4><div class="detail-grid">
-        <div class="detail-item"><label>Type</label><span>${v.vehicleType||'–'}</span></div>
-        <div class="detail-item"><label>Model</label><span>${v.vehicleModel||'–'}</span></div>
-        <div class="detail-item"><label>Year</label><span>${v.vehicleYear||'–'}</span></div>
-        <div class="detail-item"><label>Reg No.</label><span>${v.registrationNumber||'–'}</span></div>
-        <div class="detail-item"><label>Seating</label><span>${v.seatingCapacity||'–'}</span></div>
-        <div class="detail-item"><label>Fuel</label><span>${v.fuelType||'–'} | AC: ${v.acAvailable==='yes'?'Yes':'No'}</span></div>
-      </div></div>
-      <div class="detail-section"><h4>Documents</h4><div class="detail-grid">
-        <div class="detail-item"><label>Aadhaar</label><span>${v.aadhaarNumber||'–'}</span></div>
-        <div class="detail-item"><label>PAN</label><span>${v.panNumber||'–'}</span></div>
-        <div class="detail-item"><label>DL Number</label><span>${v.dlNumber||'–'}</span></div>
-        <div class="detail-item"><label>DL Expiry</label><span>${v.dlExpiry||'–'}</span></div>
-      </div></div>
-      <div class="detail-section"><h4>Address</h4><div class="detail-grid">
-        <div class="detail-item"><label>Address</label><span>${v.addressLine1||'–'}${v.addressLine2?', '+v.addressLine2:''}</span></div>
-        <div class="detail-item"><label>City / State</label><span>${v.city||'–'}, ${v.state||'–'} – ${v.pinCode||'–'}</span></div>
-      </div></div>
-      ${v.adminNote ? `<div class="detail-section"><h4>Admin Note</h4><p style="font-size:0.85rem;background:#f8fafc;padding:12px;border-radius:8px;color:#1a2b3c;">${v.adminNote}</p></div>` : ''}
-      <div class="detail-section" style="margin-bottom:0;"><h4>Current Status</h4>
-        <span class="badge ${v.status||'pending'}" style="font-size:0.82rem;padding:6px 14px;">
-          <i class="fas fa-${statusIcons[v.status]||'clock'}"></i> ${(v.status||'pending').toUpperCase()}
-        </span>
-      </div>`;
-
-    document.getElementById('statusActions').innerHTML = `
-      <h4>Change Status</h4>
-      <div class="action-grid">
-        <button class="action-btn approve" onclick="setAction('approved')"><i class="fas fa-check"></i> Approve</button>
-        <button class="action-btn reject" onclick="setAction('rejected')"><i class="fas fa-times"></i> Reject</button>
-        <button class="action-btn restrict" onclick="setAction('restricted')"><i class="fas fa-ban"></i> Restrict</button>
-        <button class="action-btn reverify" onclick="setAction('reverify')"><i class="fas fa-redo"></i> Reverify</button>
-        <button class="action-btn old" onclick="setAction('old')"><i class="fas fa-archive"></i> Mark Old</button>
-      </div>`;
-
-    document.getElementById('modalOverlay').classList.add('open');
-  };
-
-  window.setAction = function(action) {
-    pendingAction = action;
-    const box = document.getElementById('reasonBox');
-    const label = document.getElementById('reasonLabel');
-    const submitBtn = document.getElementById('reasonSubmitBtn');
-    const labels = {
-      approved: 'Note for vendor (optional)',
-      rejected: 'Reason for rejection (required)',
-      restricted: 'Reason for restriction (required)',
-      reverify: 'What needs to be reverified? (required)',
-      old: 'Note about this vendor (optional)'
-    };
-    label.textContent = labels[action] || 'Reason';
-    submitBtn.textContent = `Confirm — ${action.charAt(0).toUpperCase()+action.slice(1)}`;
-    submitBtn.onclick = confirmAction;
-    box.style.display = 'block';
-    document.getElementById('reasonText').focus();
-  };
-
-  async function confirmAction() {
-    const reason = document.getElementById('reasonText').value.trim();
-    const requiresReason = ['rejected','restricted','reverify'];
-    if (requiresReason.includes(pendingAction) && !reason) {
-      alert('Please enter a reason before confirming.'); return;
+    if (typeof password !== 'string' || password.length < 8) {
+      res.status(400).json({ error: 'Password must be at least 8 characters.' });
+      return;
     }
-    const submitBtn = document.getElementById('reasonSubmitBtn');
-    submitBtn.textContent = 'Saving…'; submitBtn.disabled = true;
 
-    const updateData = {
-      status: pendingAction,
-      adminNote: reason,
-      statusUpdatedAt: new Date().toISOString()
-    };
+    // The only place this comparison happens is here, on the server.
+    // process.env.ADMIN_SECRET is set in the Vercel dashboard and is
+    // never sent to, or readable by, the browser.
+    if (secretCode !== process.env.ADMIN_SECRET) {
+      res.status(403).json({ error: 'Incorrect secret code. Contact Click Cabs management.' });
+      return;
+    }
 
-    await updateDoc(doc(db, "vendors", currentVendorId), updateData);
-    const v = allVendors.find(x => x.id === currentVendorId);
-    if (v) { v.status = pendingAction; v.adminNote = reason; }
-    updateStats(); applyFilters(); closeModal();
+    // Admin SDK creates the auth user server-side.
+    const userRecord = await admin.auth().createUser({
+      email,
+      password,
+      displayName: fullName,
+    });
+
+    // Admin SDK writes bypass Firestore security rules entirely, so this
+    // write succeeds even if/when you lock the "admins" collection down
+    // to deny all client-side writes (recommended -- see rules note).
+    await db.collection('admins').doc(userRecord.uid).set({
+      fullName,
+      email,
+      role: 'admin',
+      createdAt: new Date().toISOString(),
+    });
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    if (error.code === 'auth/email-already-exists') {
+      res.status(409).json({ error: 'This email is already registered.' });
+    } else if (error.code === 'auth/invalid-email') {
+      res.status(400).json({ error: 'Please enter a valid email address.' });
+    } else {
+      console.error('create-admin error:', error);
+      res.status(500).json({ error: 'Something went wrong. Please try again.' });
+    }
   }
-
-  window.closeModal = function() {
-    document.getElementById('modalOverlay').classList.remove('open');
-    pendingAction = null; currentVendorId = null;
-  };
-
-  document.getElementById('modalOverlay').addEventListener('click', function(e) {
-    if (e.target === this) closeModal();
-  });
-</script>
-
-</body>
-</html>
+};
