@@ -1,0 +1,76 @@
+rules_version = '2';
+
+// Click Cabs — Firestore security rules
+//
+// Four collections are in use across both projects:
+//   tourEnquiries  main site  (tour-packages.html)
+//   users          main site + user portal
+//   vendors        vendor signup / vendor dashboard / admin dashboard
+//   admins         admin login + admin dashboard
+//
+// IMPORTANT: Firestore rules are OR'd, not overridden by specificity. If any
+// matching rule allows an operation, it is allowed. A catch-all such as
+//   match /{document=**} { allow read, write: if request.auth != null; }
+// therefore GRANTS access to every collection regardless of the stricter
+// rules below it. There is deliberately no catch-all here.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Public tour enquiries ────────────────────────────────────────────
+    // Anyone may submit. Nobody may read them back from the browser, so the
+    // collection cannot be scraped for customer phone numbers.
+    match /tourEnquiries/{doc} {
+      allow create: if request.resource.data.keys().hasOnly([
+                         'tour','name','phone','email','startDate',
+                         'travellers','message','source','status','createdAt'
+                       ])
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() > 0
+                    && request.resource.data.name.size() < 120
+                    && request.resource.data.phone is string
+                    && request.resource.data.phone.size() >= 8
+                    && request.resource.data.phone.size() <= 20
+                    && request.resource.data.message.size() < 1000
+                    && request.resource.data.status == 'new';
+      allow read, update, delete: if false;
+    }
+
+    // ── Admin records ────────────────────────────────────────────────────
+    // An admin may read only their OWN record — enough for the dashboard's
+    // access check, but nobody can enumerate the admin list.
+    // Writes are blocked entirely so an account cannot promote itself.
+    // New admins are created by api/create-admin.js using the Admin SDK,
+    // which bypasses these rules.
+    match /admins/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // ── Customer accounts ────────────────────────────────────────────────
+    // Each signed-in user owns exactly their own document.
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // ── Vendor applications ──────────────────────────────────────────────
+    // Vendor documents are keyed by the vendor's auth UID
+    // (vendor-signup.html: setDoc(doc(db,"vendors", uid))).
+    //
+    //   create  a signed-in vendor may file their own application
+    //   read    the vendor themselves, or any admin
+    //   update  the vendor themselves (document uploads), or any admin
+    //           (status changes from the admin dashboard)
+    //   delete  nobody — applications are archived via status, not removed
+    match /vendors/{vendorId} {
+      allow create: if request.auth != null && request.auth.uid == vendorId;
+
+      allow read, update: if request.auth != null && (
+                            request.auth.uid == vendorId
+                            || exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+                          );
+
+      allow delete: if false;
+    }
+  }
+}
