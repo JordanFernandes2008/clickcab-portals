@@ -1,0 +1,6 @@
+# Vercel cannot execute PHP, and refuses to build an api/ directory where two
+# files share a basename — api/send-confirmation.js and .php both resolve to
+# the route api/send-confirmation. The PHP files are for Hostinger, which is
+# production. They stay in the repo; this only affects what Vercel uploads.
+
+api/*.php
