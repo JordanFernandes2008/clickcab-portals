@@ -2,7 +2,12 @@ rules_version = '2';
 
 // Click Cabs — Firestore security rules
 //
-// Four collections are in use across both projects:
+// COMPLETE FILE. Paste the whole thing into
+//   Firebase console → Firestore Database → Rules → Publish
+// Do not merge fragments of it into what is already there. Replace everything.
+//
+// Five collections are in use across both projects:
+//   bookings       main site  (all booking forms)          NEW
 //   tourEnquiries  main site  (tour-packages.html)
 //   users          main site + user portal
 //   vendors        vendor signup / vendor dashboard / admin dashboard
@@ -12,14 +17,68 @@ rules_version = '2';
 // matching rule allows an operation, it is allowed. A catch-all such as
 //   match /{document=**} { allow read, write: if request.auth != null; }
 // therefore GRANTS access to every collection regardless of the stricter
-// rules below it. There is deliberately no catch-all here.
+// rules below it. There is deliberately no catch-all here. Do not add one.
+//
+// ALSO IMPORTANT: 'service' is a reserved word in this language — it is the
+// keyword that opens the block below. A booking field of that name therefore
+// CANNOT be read as request.resource.data.service; that fails to parse with
+// "Unexpected 'is'". It must be read with bracket notation instead:
+//   request.resource.data['service']
+// The same applies to any other field colliding with a keyword.
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // An admin is any signed-in user who has a document in /admins keyed by
+    // their own uid. Those documents are created by api/create-admin.js with
+    // the Admin SDK, which bypasses these rules.
+    function isAdmin() {
+      return request.auth != null
+          && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // ── Bookings ─────────────────────────────────────────────────────────
+    // Written by the public booking forms on the main site, before the
+    // WhatsApp handoff. Anyone may create one; only admins may read them, so
+    // the collection cannot be scraped for customer phone numbers.
+    //
+    // Updates are restricted to the four fields the dashboard actually
+    // changes. An admin cannot rewrite the customer's details, so the record
+    // of what was originally submitted is preserved.
+    match /bookings/{doc} {
+      allow create: if request.resource.data.keys().hasOnly([
+                         'ref','service','source','name','phone','email',
+                         'pickup','drop','date','time','passengers',
+                         'vehicle','package','tour','message',
+                         'status','createdAt'
+                       ])
+                    && request.resource.data.ref is string
+                    && request.resource.data.ref.size() >= 5
+                    && request.resource.data.ref.size() <= 12
+                    && request.resource.data['service'] is string
+                    && request.resource.data['service'].size() <= 20
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() > 0
+                    && request.resource.data.name.size() < 120
+                    && request.resource.data.phone is string
+                    && request.resource.data.phone.size() >= 8
+                    && request.resource.data.phone.size() <= 20
+                    && request.resource.data.status == 'new';
+
+      allow read: if isAdmin();
+
+      allow update: if isAdmin()
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['status','adminNote','confirmationSentAt','updatedAt'])
+                    && request.resource.data.status in
+                         ['new','contacted','confirmed','completed','cancelled'];
+
+      allow delete: if false;
+    }
+
     // ── Public tour enquiries ────────────────────────────────────────────
-    // Anyone may submit. Nobody may read them back from the browser, so the
-    // collection cannot be scraped for customer phone numbers.
+    // Anyone may submit. Admins may now read them so the enquiries are
+    // visible somewhere other than WhatsApp. Still no update or delete.
     match /tourEnquiries/{doc} {
       allow create: if request.resource.data.keys().hasOnly([
                          'tour','name','phone','email','startDate',
@@ -33,15 +92,15 @@ service cloud.firestore {
                     && request.resource.data.phone.size() <= 20
                     && request.resource.data.message.size() < 1000
                     && request.resource.data.status == 'new';
-      allow read, update, delete: if false;
+
+      allow read: if isAdmin();
+      allow update, delete: if false;
     }
 
     // ── Admin records ────────────────────────────────────────────────────
     // An admin may read only their OWN record — enough for the dashboard's
     // access check, but nobody can enumerate the admin list.
     // Writes are blocked entirely so an account cannot promote itself.
-    // New admins are created by api/create-admin.js using the Admin SDK,
-    // which bypasses these rules.
     match /admins/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow write: if false;
@@ -67,7 +126,7 @@ service cloud.firestore {
 
       allow read, update: if request.auth != null && (
                             request.auth.uid == vendorId
-                            || exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+                            || isAdmin()
                           );
 
       allow delete: if false;

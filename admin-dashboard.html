@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Admin Dashboard – Click Cabs</title>
+  <link rel="icon" type="image/png" href="https://clickcab-7fv3.vercel.app/images/favicon.png" />
+  <meta name="description" content="Click Cabs admin dashboard — review, approve and manage vendor partner applications." />
+  <meta name="theme-color" content="#01456c" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -26,6 +29,13 @@
     }
     .topbar-right { display: flex; align-items: center; gap: 14px; }
     .admin-name { color: rgba(255,255,255,0.8); font-size: 0.85rem; }
+    .topbar-link {
+      background: rgba(255,255,255,0.1); color: #fff; text-decoration: none;
+      border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
+      padding: 6px 14px; font-size: 0.8rem; font-family: inherit;
+      display: flex; align-items: center; gap: 6px; transition: background 0.2s;
+    }
+    .topbar-link:hover { background: rgba(255,255,255,0.2); }
     .logout-btn {
       background: rgba(255,255,255,0.1); color: #fff;
       border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
@@ -214,6 +224,17 @@
       .search-input { width: 100%; }
     }
   
+    /* toast - replaces alert(), matching admin-bookings.html */
+    .toast {
+      position: fixed; left: 50%; bottom: 26px; transform: translate(-50%, 20px);
+      background: #1a2b3c; color: #fff; border-radius: 8px; padding: 12px 20px;
+      font-size: 0.85rem; box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+      opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s;
+      z-index: 400; max-width: 90vw;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    .toast.err { background: #a3271e; }
+    .toast.ok { background: #1a7f4b; }
     /* ── failure banner: shown instead of an endless spinner ── */
     .fail-box {
       display: none;
@@ -249,6 +270,7 @@
   </div>
   <div class="topbar-right">
     <span class="admin-name" id="adminName">Loading…</span>
+    <a class="topbar-link" href="admin-bookings.html"><i class="fas fa-calendar-check"></i> Bookings</a>
     <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
   </div>
 </div>
@@ -337,6 +359,17 @@
 
   /* Surface a failure instead of leaving "Loading…" spinning forever.
      Every await below is wrapped; a rejected promise used to die silently. */
+  function ccToast(message, kind) {
+    const t = document.getElementById('ccToast');
+    if (!t) return;
+    t.textContent = message;
+    t.className = 'toast show ' + (kind || '');
+    clearTimeout(window.__ccToastTimer);
+    window.__ccToastTimer = setTimeout(function () {
+      t.className = 'toast ' + (kind || '');
+    }, 4000);
+  }
+
   function ccFail(title, message) {
     const spin = document.querySelector('.loading');
     if (spin) spin.style.display = 'none';
@@ -541,7 +574,7 @@
     const reason = document.getElementById('reasonText').value.trim();
     const requiresReason = ['rejected','restricted','reverify'];
     if (requiresReason.includes(pendingAction) && !reason) {
-      alert('Please enter a reason before confirming.'); return;
+      ccToast('Please enter a reason before confirming.', 'err'); return;
     }
     const submitBtn = document.getElementById('reasonSubmitBtn');
     submitBtn.textContent = 'Saving…'; submitBtn.disabled = true;
@@ -559,9 +592,10 @@
       submitBtn.textContent = 'Confirm \u2014 ' +
         pendingAction.charAt(0).toUpperCase() + pendingAction.slice(1);
       const code = (error && error.code) || '';
-      alert(code === 'permission-denied'
+      ccToast(code === 'permission-denied'
         ? 'Firestore blocked this update (permission-denied). Your account may not have admin write access.'
-        : 'Could not save the status change: ' + (error && error.message ? error.message : 'unknown error'));
+        : 'Could not save the status change: ' + (error && error.message ? error.message : 'unknown error'),
+        'err');
       return;
     }
     const v = allVendors.find(x => x.id === currentVendorId);
@@ -590,6 +624,8 @@
       }
     }, 12000);
 </script>
+
+<div class="toast" id="ccToast"></div>
 
 </body>
 </html>

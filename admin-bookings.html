@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bookings – Click Cabs Admin</title>
+  <link rel="icon" type="image/png" href="https://clickcab-7fv3.vercel.app/images/favicon.png" />
+  <meta name="description" content="Click Cabs admin bookings board — every booking taken from the website, with status tracking and customer confirmations." />
+  <meta name="theme-color" content="#01456c" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --blue: #01456c; --yellow: #f5a800; --border: #dde3ea; --text: #1a2b3c; --muted: #6b7c8d; --bg: #f4f7fa; }
+    body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    .topbar {
+      background: var(--blue); height: 60px; padding: 0 28px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2); position: sticky; top: 0; z-index: 100;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 12px; }
+    .topbar-left img { height: 36px; width: 36px; border-radius: 6px; background: #fff; padding: 3px; object-fit: contain; }
+    .topbar-title { color: #fff; font-weight: 800; font-size: 1.1rem; }
+    .topbar-title span { color: var(--yellow); }
+    .admin-chip {
+      background: rgba(245,168,0,0.15); border: 1px solid var(--yellow);
+      color: var(--yellow); font-size: 0.68rem; font-weight: 700;
+      padding: 3px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .topbar-right { display: flex; align-items: center; gap: 14px; }
+    .admin-name { color: rgba(255,255,255,0.8); font-size: 0.85rem; }
+    .topbar-link {
+      background: rgba(255,255,255,0.1); color: #fff; text-decoration: none;
+      border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
+      padding: 6px 14px; font-size: 0.8rem; font-family: inherit;
+      display: flex; align-items: center; gap: 6px; transition: background 0.2s;
+    }
+    .topbar-link:hover { background: rgba(255,255,255,0.2); }
+    .logout-btn {
+      background: rgba(255,255,255,0.1); color: #fff;
+      border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
+      padding: 6px 14px; font-size: 0.8rem; cursor: pointer;
+      font-family: inherit; transition: background 0.2s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .logout-btn:hover { background: rgba(255,255,255,0.2); }
+
+    .content { max-width: 1250px; margin: 0 auto; padding: 28px 20px; }
+
+    .stats-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-bottom: 24px; }
+    .stat-card {
+      background: #fff; border-radius: 12px; padding: 16px 18px;
+      box-shadow: 0 2px 12px rgba(1,69,108,0.07);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .stat-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
+    .stat-icon.blue { background: #e8f1f8; color: var(--blue); }
+    .stat-icon.yellow { background: #fff8e6; color: #d48e00; }
+    .stat-icon.green { background: #e8f7ef; color: #1a7f4b; }
+    .stat-icon.red { background: #fdf0f0; color: #c0392b; }
+    .stat-icon.orange { background: #fff3e8; color: #e07b00; }
+    .stat-icon.grey { background: #f0f4f8; color: #6b7c8d; }
+    .stat-num { font-size: 1.5rem; font-weight: 900; line-height: 1; }
+    .stat-label { font-size: 0.68rem; color: var(--muted); margin-top: 2px; font-weight: 600; text-transform: uppercase; }
+
+    .filters-bar {
+      background: #fff; border-radius: 10px; padding: 14px 20px;
+      display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(1,69,108,0.06); flex-wrap: wrap;
+    }
+    .filters-bar .grouplabel { font-size: 0.7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-right: 2px; }
+    .filter-btn {
+      padding: 6px 14px; border-radius: 20px; font-size: 0.78rem;
+      font-weight: 700; cursor: pointer; border: 1.5px solid var(--border);
+      background: #fff; color: var(--muted); font-family: inherit; transition: all 0.2s;
+    }
+    .filter-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .filter-btn:hover:not(.active) { border-color: var(--blue); color: var(--blue); }
+    .search-input-wrap { position: relative; margin-left: auto; }
+    .search-input-wrap i { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 0.85rem; }
+    .search-input {
+      border: 1.5px solid var(--border); border-radius: 8px;
+      padding: 8px 14px 8px 34px; font-size: 0.82rem;
+      font-family: inherit; outline: none; width: 250px; transition: border-color 0.2s;
+    }
+    .search-input:focus { border-color: var(--blue); }
+    .btn-csv {
+      padding: 8px 14px; border-radius: 8px; font-size: 0.78rem; font-weight: 700;
+      cursor: pointer; border: 1.5px solid var(--border); background: #fff;
+      color: var(--blue); font-family: inherit; display: flex; align-items: center; gap: 6px;
+    }
+    .btn-csv:hover { border-color: var(--blue); background: #f2f8fc; }
+
+    .table-wrap { background: #fff; border-radius: 12px; box-shadow: 0 2px 12px rgba(1,69,108,0.07); overflow: hidden; }
+    .table-header { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .table-header h3 { font-size: 0.95rem; font-weight: 800; }
+    .table-header span { font-size: 0.8rem; color: var(--muted); }
+    .table-scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 880px; }
+    thead th {
+      background: #f8fafc; padding: 11px 14px; text-align: left;
+      font-size: 0.7rem; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border);
+    }
+    tbody tr { border-bottom: 1px solid #f0f4f8; transition: background 0.15s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #f8fafc; }
+    td { padding: 12px 14px; font-size: 0.83rem; vertical-align: middle; }
+    .b-ref { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; color: var(--blue); }
+    .b-name { font-weight: 700; }
+    .b-sub { font-size: 0.73rem; color: var(--muted); margin-top: 1px; }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 9px; border-radius: 20px;
+      font-size: 0.7rem; font-weight: 700; white-space: nowrap;
+    }
+    .badge.new { background: #e8f1f8; color: #01456c; }
+    .badge.contacted { background: #fff8e6; color: #d48e00; }
+    .badge.confirmed { background: #e8f7ef; color: #1a7f4b; }
+    .badge.completed { background: #f0f4f8; color: #4a6070; }
+    .badge.cancelled { background: #fdf0f0; color: #c0392b; }
+    .badge.svc { background: #f4f0fb; color: #5b3fa8; text-transform: capitalize; }
+
+    .btn-view {
+      padding: 5px 12px; border-radius: 6px; font-size: 0.76rem;
+      font-weight: 700; cursor: pointer; border: none; font-family: inherit;
+      background: #e8f1f8; color: var(--blue); transition: background 0.2s;
+    }
+    .btn-view:hover { background: #d0e4f4; }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .empty-state i { font-size: 2rem; opacity: 0.4; margin-bottom: 10px; display: block; }
+    .loading { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .loading i { font-size: 1.6rem; margin-bottom: 10px; display: block; }
+
+    /* failure banner: shown instead of an endless spinner */
+    .fail-box {
+      display: none;
+      background: #fff5f5; border: 1px solid #f3c9c9; border-radius: 10px;
+      padding: 18px 20px; margin: 20px 0; color: #a3271e;
+    }
+    .fail-box.show { display: block; }
+    .fail-box h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .fail-box p { font-size: 0.86rem; line-height: 1.6; margin-bottom: 10px; color: #7d2b22; }
+    .fail-box code { background: #fdecec; border-radius: 4px; padding: 1px 6px; font-size: 0.8rem; font-family: ui-monospace, Menlo, Consolas, monospace; }
+    .fail-box .fail-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .fail-box button, .fail-box a {
+      background: #a3271e; color: #fff; border: none; border-radius: 6px;
+      padding: 8px 16px; font-size: 0.83rem; font-weight: 700;
+      cursor: pointer; text-decoration: none; font-family: inherit;
+    }
+    .fail-box a.secondary { background: #fff; color: #a3271e; border: 1px solid #e2b6b1; }
+
+    /* toast — replaces alert() */
+    .toast {
+      position: fixed; left: 50%; bottom: 26px; transform: translate(-50%, 20px);
+      background: #1a2b3c; color: #fff; border-radius: 8px; padding: 12px 20px;
+      font-size: 0.85rem; box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+      opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s;
+      z-index: 400; max-width: 90vw;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    .toast.err { background: #a3271e; }
+    .toast.ok { background: #1a7f4b; }
+
+    /* detail drawer */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(10,26,40,0.55);
+      z-index: 300; align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #fff; border-radius: 14px; width: 100%; max-width: 560px;
+      max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .modal-head { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .modal-head h3 { font-size: 1rem; font-weight: 800; }
+    .modal-close { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--muted); line-height: 1; }
+    .modal-body { padding: 20px 22px; }
+    .drow { display: flex; padding: 7px 0; border-bottom: 1px solid #f2f5f8; font-size: 0.85rem; gap: 12px; }
+    .drow:last-child { border-bottom: none; }
+    .drow dt { color: var(--muted); width: 128px; flex-shrink: 0; font-weight: 600; }
+    .drow dd { font-weight: 600; word-break: break-word; }
+    .modal-foot { padding: 16px 22px 22px; border-top: 1px solid var(--border); }
+    .status-label { font-size: 0.7rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .status-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .status-btn {
+      padding: 7px 14px; border-radius: 8px; font-size: 0.78rem; font-weight: 700;
+      cursor: pointer; border: 1.5px solid var(--border); background: #fff;
+      color: var(--muted); font-family: inherit; text-transform: capitalize;
+    }
+    .status-btn.current { background: var(--blue); color: #fff; border-color: var(--blue); cursor: default; }
+    .status-btn:hover:not(.current) { border-color: var(--blue); color: var(--blue); }
+    .status-btn:disabled { opacity: 0.5; cursor: wait; }
+    .wa-btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; background: #25d366; color: #fff; border: none; border-radius: 8px;
+      padding: 11px; font-size: 0.85rem; font-weight: 700; cursor: pointer;
+      font-family: inherit; text-decoration: none;
+    }
+    .wa-btn:hover { background: #1eb958; }
+    .mail-note { font-size: 0.76rem; color: var(--muted); margin-top: 10px; line-height: 1.5; }
+
+    @media (max-width: 900px) {
+      .stats-row { grid-template-columns: repeat(3, 1fr); }
+      .topbar { padding: 0 14px; }
+      .admin-name { display: none; }
+    }
+    @media (max-width: 560px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .search-input { width: 100%; }
+      .search-input-wrap { margin-left: 0; width: 100%; }
+      .content { padding: 18px 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <img src="https://clickcab-7fv3.vercel.app/images/favicon.png" alt="Click Cabs" />
+    <div class="topbar-title">CLICK<span>CABS</span></div>
+    <span class="admin-chip">Bookings</span>
+  </div>
+  <div class="topbar-right">
+    <span class="admin-name" id="adminName">Loading…</span>
+    <a class="topbar-link" href="admin-dashboard.html"><i class="fas fa-user-tie"></i> Vendors</a>
+    <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-inbox"></i></div>
+      <div><div class="stat-num" id="sTotal">–</div><div class="stat-label">Total</div></div></div>
+    <div class="stat-card"><div class="stat-icon orange"><i class="fas fa-bell"></i></div>
+      <div><div class="stat-num" id="sNew">–</div><div class="stat-label">New</div></div></div>
+    <div class="stat-card"><div class="stat-icon yellow"><i class="fas fa-phone"></i></div>
+      <div><div class="stat-num" id="sContacted">–</div><div class="stat-label">Contacted</div></div></div>
+    <div class="stat-card"><div class="stat-icon green"><i class="fas fa-check"></i></div>
+      <div><div class="stat-num" id="sConfirmed">–</div><div class="stat-label">Confirmed</div></div></div>
+    <div class="stat-card"><div class="stat-icon grey"><i class="fas fa-flag-checkered"></i></div>
+      <div><div class="stat-num" id="sCompleted">–</div><div class="stat-label">Completed</div></div></div>
+    <div class="stat-card"><div class="stat-icon red"><i class="fas fa-xmark"></i></div>
+      <div><div class="stat-num" id="sCancelled">–</div><div class="stat-label">Cancelled</div></div></div>
+  </div>
+
+  <div class="fail-box" id="failBox">
+    <h4><i class="fas fa-triangle-exclamation"></i> <span id="failTitle">Something went wrong</span></h4>
+    <p id="failText"></p>
+    <div class="fail-actions">
+      <button onclick="location.reload()"><i class="fas fa-rotate-right"></i> Retry</button>
+      <a class="secondary" href="admin-login.html">Sign in again</a>
+    </div>
+  </div>
+
+  <div class="filters-bar">
+    <span class="grouplabel">Status</span>
+    <button class="filter-btn active" data-status="all">All</button>
+    <button class="filter-btn" data-status="new">New</button>
+    <button class="filter-btn" data-status="contacted">Contacted</button>
+    <button class="filter-btn" data-status="confirmed">Confirmed</button>
+    <button class="filter-btn" data-status="completed">Completed</button>
+    <button class="filter-btn" data-status="cancelled">Cancelled</button>
+    <div class="search-input-wrap">
+      <i class="fas fa-search"></i>
+      <input class="search-input" id="searchBox" type="search" placeholder="Name, mobile or CC-reference…" />
+    </div>
+  </div>
+
+  <div class="filters-bar">
+    <span class="grouplabel">Service</span>
+    <button class="filter-btn active" data-service="all">All</button>
+    <button class="filter-btn" data-service="outstation">Outstation</button>
+    <button class="filter-btn" data-service="airport">Airport</button>
+    <button class="filter-btn" data-service="local">Local</button>
+    <button class="filter-btn" data-service="oneway">One Way</button>
+    <button class="filter-btn" data-service="corporate">Corporate</button>
+    <button class="filter-btn" data-service="tour">Tour</button>
+    <button class="btn-csv" id="csvBtn" style="margin-left:auto;"><i class="fas fa-file-csv"></i> Export CSV</button>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-header">
+      <h3>Bookings</h3>
+      <span id="tableCount">–</span>
+    </div>
+    <div class="loading" id="loadingRow"><i class="fas fa-spinner fa-spin"></i><p>Loading…</p></div>
+    <div class="table-scroll">
+      <table id="bookingsTable" style="display:none;">
+        <thead>
+          <tr>
+            <th>Reference</th><th>Customer</th><th>Service</th>
+            <th>Trip</th><th>Received</th><th>Status</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="empty-state" id="emptyState" style="display:none;">
+      <i class="fas fa-inbox"></i>
+      <p id="emptyText">No bookings yet.</p>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="detailModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="dTitle">Booking</h3>
+      <button class="modal-close" onclick="closeDetail()" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body"><dl id="dBody"></dl></div>
+    <div class="modal-foot">
+      <div class="status-label">Move to</div>
+      <div class="status-row" id="statusRow"></div>
+      <a class="wa-btn" id="waConfirm" target="_blank" rel="noopener">
+        <i class="fab fa-whatsapp"></i> Send confirmation on WhatsApp
+      </a>
+      <p class="mail-note" id="mailNote"></p>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, doc, getDoc, onSnapshot, query,
+         orderBy, limit, updateDoc, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCoITUbvm1c0-Ud9VN_jVOZg99dg42jPgY",
+  authDomain: "clickcabs-772bd.firebaseapp.com",
+  projectId: "clickcabs-772bd",
+  storageBucket: "clickcabs-772bd.firebasestorage.app",
+  messagingSenderId: "861153834886",
+  appId: "1:861153834886:web:eae295a297c47120c31e07"
+};
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+/* Vercel runs the Node twin, Hostinger runs the PHP one. Production is
+   Hostinger; the .vercel.app copy is staging. Both hold the API key
+   server-side — it is never in this file. */
+const MAIL_ENDPOINT = location.hostname.endsWith("vercel.app")
+  ? "/api/send-confirmation"
+  : "/api/send-confirmation.php";
+
+const STATUSES = ["new", "contacted", "confirmed", "completed", "cancelled"];
+const WA_NUMBER = "919702290804";
+
+let all = [];
+let fStatus = "all";
+let fService = "all";
+let fSearch = "";
+let current = null;
+let firstSnapshot = false;
+
+
+/* ---------- failure surface: never a spinner that hangs ---------- */
+function ccFail(title, message) {
+  const spin = document.getElementById("loadingRow");
+  if (spin) spin.style.display = "none";
+  document.getElementById("failTitle").textContent = title;
+  document.getElementById("failText").innerHTML = message;
+  document.getElementById("failBox").classList.add("show");
+  document.getElementById("tableCount").textContent = "—";
+  const n = document.getElementById("adminName");
+  if (n && n.textContent === "Loading…") n.textContent = "Not signed in";
+}
+
+function ccExplain(error) {
+  const code = (error && error.code) || "";
+  if (code === "permission-denied") {
+    return "Firestore refused the read (<code>permission-denied</code>). Either this account is not in the "
+         + "<code>admins</code> collection, or the published rules do not yet include the <code>bookings</code> "
+         + "block. Republish firestore.rules from the portals repo.";
+  }
+  if (code === "unavailable" || code === "auth/network-request-failed") {
+    return "Could not reach Firebase (<code>" + code + "</code>). Check your connection and retry.";
+  }
+  if (code === "failed-precondition") {
+    return "Firestore rejected the query (<code>failed-precondition</code>) — usually a missing index. "
+         + "Open the browser console; Firebase prints a one-click link to create it.";
+  }
+  return "Error: <code>" + (code || (error && error.message) || "unknown") + "</code>";
+}
+
+function toast(msg, kind) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "toast show " + (kind || "");
+  clearTimeout(window.__t);
+  window.__t = setTimeout(function () { t.className = "toast " + (kind || ""); }, 4000);
+}
+
+
+/* ---------- auth ---------- */
+onAuthStateChanged(auth, async (user) => {
+  if (!user) { window.location.href = "admin-login.html"; return; }
+  let adminDoc;
+  try {
+    adminDoc = await getDoc(doc(db, "admins", user.uid));
+  } catch (error) {
+    ccFail("Could not verify admin access", ccExplain(error));
+    return;
+  }
+  if (!adminDoc.exists()) {
+    try { await signOut(auth); } catch (e) {}
+    window.location.href = "admin-login.html";
+    return;
+  }
+  document.getElementById("adminName").textContent = user.email;
+  listen();
+});
+
+document.getElementById("logoutBtn").addEventListener("click", async () => {
+  try { await signOut(auth); } catch (e) { console.warn("sign-out failed:", e); }
+  window.location.href = "admin-login.html";
+});
+
+
+/* ---------- live listener ---------- */
+function listen() {
+  const q = query(collection(db, "bookings"), orderBy("createdAt", "desc"), limit(500));
+  onSnapshot(q,
+    (snap) => {
+      firstSnapshot = true;
+      all = [];
+      snap.forEach((d) => all.push(Object.assign({ id: d.id }, d.data())));
+      document.getElementById("loadingRow").style.display = "none";
+      document.getElementById("failBox").classList.remove("show");
+      render();
+    },
+    (error) => {
+      ccFail("Could not load bookings", ccExplain(error));
+    }
+  );
+}
+
+/* If nothing has resolved after 12s, say so rather than spinning forever. */
+setTimeout(function () {
+  if (firstSnapshot) return;
+  const box = document.getElementById("failBox");
+  if (box && !box.classList.contains("show")) {
+    ccFail("Still loading",
+      "No response from Firebase after 12 seconds. That usually means a network problem, "
+    + "or that the <code>bookings</code> rules have not been published yet.");
+  }
+}, 12000);
+
+
+/* ---------- rendering ---------- */
+function esc(s) {
+  return String(s === undefined || s === null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function when(b) {
+  const t = b.createdAt && b.createdAt.toDate ? b.createdAt.toDate() : null;
+  if (!t) return "just now";
+  return t.toLocaleDateString("en-IN", { day: "2-digit", month: "short" })
+       + " " + t.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+}
+
+function trip(b) {
+  if (b.tour) return b.tour;
+  const from = b.pickup || "";
+  const to = b.drop || b.package || "";
+  if (from && to) return from + " → " + to;
+  return from || to || "—";
+}
+
+function filtered() {
+  const s = fSearch.trim().toLowerCase();
+  return all.filter(function (b) {
+    if (fStatus !== "all" && (b.status || "new") !== fStatus) return false;
+    if (fService !== "all" && b.service !== fService) return false;
+    if (!s) return true;
+    return [b.ref, b.name, b.phone, b.email].some(function (v) {
+      return String(v || "").toLowerCase().includes(s);
+    });
+  });
+}
+
+function render() {
+  const counts = { new: 0, contacted: 0, confirmed: 0, completed: 0, cancelled: 0 };
+  all.forEach(function (b) {
+    const st = b.status || "new";
+    if (counts[st] !== undefined) counts[st]++;
+  });
+  document.getElementById("sTotal").textContent = all.length;
+  STATUSES.forEach(function (st) {
+    const el = document.getElementById("s" + st.charAt(0).toUpperCase() + st.slice(1));
+    if (el) el.textContent = counts[st];
+  });
+
+  const rows = filtered();
+  document.getElementById("tableCount").textContent =
+    rows.length + (rows.length === 1 ? " booking" : " bookings");
+
+  const table = document.getElementById("bookingsTable");
+  const empty = document.getElementById("emptyState");
+  if (!rows.length) {
+    table.style.display = "none";
+    empty.style.display = "block";
+    document.getElementById("emptyText").textContent =
+      all.length ? "No bookings match these filters." : "No bookings yet.";
+    return;
+  }
+  empty.style.display = "none";
+  table.style.display = "table";
+
+  document.getElementById("tbody").innerHTML = rows.map(function (b) {
+    const st = b.status || "new";
+    return '<tr>'
+      + '<td><span class="b-ref">' + esc(b.ref || "—") + '</span></td>'
+      + '<td><div class="b-name">' + esc(b.name || "—") + '</div>'
+      +     '<div class="b-sub">' + esc(b.phone || "") + (b.email ? " · " + esc(b.email) : "") + '</div></td>'
+      + '<td><span class="badge svc">' + esc(b.service || "other") + '</span></td>'
+      + '<td>' + esc(trip(b)) + (b.date ? '<div class="b-sub">' + esc(b.date) + '</div>' : '') + '</td>'
+      + '<td>' + esc(when(b)) + '</td>'
+      + '<td><span class="badge ' + esc(st) + '">' + esc(st) + '</span></td>'
+      + '<td><button class="btn-view" data-id="' + esc(b.id) + '">View</button></td>'
+      + '</tr>';
+  }).join("");
+
+  Array.prototype.forEach.call(document.querySelectorAll(".btn-view"), function (btn) {
+    btn.addEventListener("click", function () { openDetail(btn.dataset.id); });
+  });
+}
+
+
+/* ---------- detail drawer ---------- */
+const FIELDS = [
+  ["ref", "Reference"], ["service", "Service"], ["name", "Name"],
+  ["phone", "Mobile"], ["email", "Email"], ["tour", "Tour"],
+  ["pickup", "Pickup"], ["drop", "Drop"], ["package", "Package"],
+  ["vehicle", "Vehicle"], ["date", "Date"], ["time", "Time"],
+  ["passengers", "Passengers"], ["message", "Notes"], ["source", "Came from"]
+];
+
+function confirmationText(b) {
+  return "Hi " + (b.name || "there") + ", your Click Cabs booking is CONFIRMED."
+    + "\n\nBooking Ref: " + (b.ref || "—")
+    + "\nService: " + (b.service || "—")
+    + (b.pickup ? "\nPickup: " + b.pickup : "")
+    + (b.drop ? "\nDrop: " + b.drop : "")
+    + (b.date ? "\nDate: " + b.date : "")
+    + (b.time ? "\nTime: " + b.time : "")
+    + "\n\nOur driver details will follow closer to your pickup time."
+    + "\nAny questions, just reply here. Thank you for choosing Click Cabs.";
+}
+
+window.openDetail = function (id) {
+  const b = all.find(function (x) { return x.id === id; });
+  if (!b) return;
+  current = b;
+
+  document.getElementById("dTitle").textContent = (b.ref || "Booking") + " · " + (b.name || "");
+  document.getElementById("dBody").innerHTML = FIELDS
+    .filter(function (f) { return b[f[0]]; })
+    .map(function (f) {
+      return '<div class="drow"><dt>' + esc(f[1]) + '</dt><dd>' + esc(b[f[0]]) + '</dd></div>';
+    }).join("")
+    + '<div class="drow"><dt>Received</dt><dd>' + esc(when(b)) + '</dd></div>'
+    + (b.confirmationSentAt
+        ? '<div class="drow"><dt>Email sent</dt><dd>yes</dd></div>' : '');
+
+  const st = b.status || "new";
+  document.getElementById("statusRow").innerHTML = STATUSES.map(function (s) {
+    return '<button class="status-btn' + (s === st ? " current" : "") + '" data-s="' + s + '"'
+         + (s === st ? " disabled" : "") + '>' + s + '</button>';
+  }).join("");
+  Array.prototype.forEach.call(document.querySelectorAll("#statusRow .status-btn"), function (btn) {
+    if (btn.disabled) return;
+    btn.addEventListener("click", function () { setStatus(btn, b, btn.dataset.s); });
+  });
+
+  const wa = document.getElementById("waConfirm");
+  wa.href = "https://wa.me/" + (b.phone ? "91" + String(b.phone).replace(/\D/g, "").slice(-10) : WA_NUMBER)
+          + "?text=" + encodeURIComponent(confirmationText(b));
+
+  document.getElementById("mailNote").textContent = b.email
+    ? "Marking this confirmed also emails " + b.email + " automatically."
+    : "No email address was given, so use the WhatsApp button above to confirm.";
+
+  document.getElementById("detailModal").classList.add("open");
+};
+
+window.closeDetail = function () {
+  document.getElementById("detailModal").classList.remove("open");
+  current = null;
+};
+
+document.getElementById("detailModal").addEventListener("click", function (e) {
+  if (e.target.id === "detailModal") window.closeDetail();
+});
+document.addEventListener("keydown", function (e) {
+  if (e.key === "Escape") window.closeDetail();
+});
+
+
+/* ---------- status changes ---------- */
+async function setStatus(btn, b, status) {
+  const row = document.getElementById("statusRow");
+  Array.prototype.forEach.call(row.querySelectorAll("button"), function (x) { x.disabled = true; });
+  btn.textContent = "saving…";
+
+  try {
+    await updateDoc(doc(db, "bookings", b.id), {
+      status: status,
+      updatedAt: serverTimestamp()
+    });
+  } catch (error) {
+    const code = (error && error.code) || "";
+    toast(code === "permission-denied"
+      ? "Firestore blocked this update — your account may not have admin write access."
+      : "Could not save: " + (error && error.message ? error.message : "unknown error"), "err");
+    window.openDetail(b.id);
+    return;
+  }
+
+  b.status = status;
+  toast("Moved to " + status, "ok");
+
+  /* Confirming is the one status that reaches the customer. */
+  if (status === "confirmed" && b.email) {
+    sendConfirmationEmail(b);
+  } else if (status === "confirmed") {
+    toast("Confirmed. No email on file — send the WhatsApp confirmation.", "ok");
+  }
+
+  render();
+  window.openDetail(b.id);
+}
+
+
+/* ---------- confirmation email ---------- */
+async function sendConfirmationEmail(b) {
+  const user = auth.currentUser;
+  if (!user) return;
+  let token;
+  try { token = await user.getIdToken(); }
+  catch (e) { toast("Could not authenticate for the email step.", "err"); return; }
+
+  try {
+    const res = await fetch(MAIL_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      /* Only the id and the token travel. The server reads the booking
+         itself, so a caller cannot dictate the recipient or the content. */
+      body: JSON.stringify({ idToken: token, bookingId: b.id })
+    });
+    const out = await res.json().catch(function () { return {}; });
+    if (!res.ok || !out.ok) {
+      toast("Booking confirmed, but the email did not send: "
+            + (out.error || ("HTTP " + res.status))
+            + " — use the WhatsApp button.", "err");
+      return;
+    }
+    toast("Confirmed and emailed to " + b.email, "ok");
+  } catch (e) {
+    toast("Booking confirmed, but the email endpoint is unreachable on this host — "
+          + "use the WhatsApp button.", "err");
+  }
+}
+
+
+/* ---------- filters, search, CSV ---------- */
+Array.prototype.forEach.call(document.querySelectorAll("[data-status]"), function (btn) {
+  btn.addEventListener("click", function () {
+    fStatus = btn.dataset.status;
+    Array.prototype.forEach.call(document.querySelectorAll("[data-status]"), function (x) {
+      x.classList.toggle("active", x === btn);
+    });
+    render();
+  });
+});
+Array.prototype.forEach.call(document.querySelectorAll("[data-service]"), function (btn) {
+  btn.addEventListener("click", function () {
+    fService = btn.dataset.service;
+    Array.prototype.forEach.call(document.querySelectorAll("[data-service]"), function (x) {
+      x.classList.toggle("active", x === btn);
+    });
+    render();
+  });
+});
+document.getElementById("searchBox").addEventListener("input", function (e) {
+  fSearch = e.target.value;
+  render();
+});
+
+document.getElementById("csvBtn").addEventListener("click", function () {
+  const rows = filtered();
+  if (!rows.length) { toast("Nothing to export with these filters.", "err"); return; }
+  const cols = ["ref","status","service","name","phone","email","pickup","drop",
+                "package","vehicle","date","time","passengers","tour","message","source"];
+  const cell = function (v) {
+    const s = String(v === undefined || v === null ? "" : v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const csv = [cols.concat(["received"]).join(",")]
+    .concat(rows.map(function (b) {
+      return cols.map(function (c) { return cell(b[c]); })
+                 .concat([cell(when(b))]).join(",");
+    })).join("\r\n");
+
+  const blob = new Blob([new Uint8Array([0xEF,0xBB,0xBF]), csv], { type: "text/csv;charset=utf-8;" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "clickcabs-bookings-" + new Date().toISOString().slice(0, 10) + ".csv";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  toast("Exported " + rows.length + " rows", "ok");
+});
+</script>
+
+</body>
+</html>
