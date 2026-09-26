@@ -4,6 +4,9 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Vendor Dashboard – Click Cabs</title>
+  <link rel="icon" type="image/png" href="https://clickcab-7fv3.vercel.app/images/favicon.png" />
+  <meta name="description" content="Click Cabs vendor dashboard — track your application status and upload required documents." />
+  <meta name="theme-color" content="#01456c" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
@@ -113,9 +116,11 @@
 
     @media(max-width:680px) { .dash-grid { grid-template-columns:1fr; } .upload-grid { grid-template-columns:1fr 1fr; } .blocked-top { padding:32px 24px 24px; } .blocked-actions,.contact-box { margin-left:24px; margin-right:24px; } }
     @media(max-width:440px) { .upload-grid { grid-template-columns:1fr; } }
-  </style>
+      .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+</style>
 </head>
 <body>
+<h1 class="sr-only">Click Cabs — Partner dashboard</h1>
 
 <div class="topbar">
   <div class="topbar-left">

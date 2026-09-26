@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Admin Registration – Click Cabs</title>
+  <link rel="icon" type="image/png" href="https://clickcab-7fv3.vercel.app/images/favicon.png" />
+  <meta name="description" content="Create a Click Cabs administrator account. Requires an authorisation code from Click Cabs management." />
+  <meta name="theme-color" content="#01456c" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -46,7 +49,7 @@
       color: var(--yellow); text-transform: uppercase;
       letter-spacing: 0.8px; margin-bottom: 14px;
     }
-    .card-header h2 { color: #fff; font-size: 1.3rem; font-weight: 800; margin-bottom: 4px; }
+    .card-header h1 { color: #fff; font-size: 1.3rem; font-weight: 800; margin-bottom: 4px; }
     .card-header p { color: rgba(255,255,255,0.6); font-size: 0.8rem; line-height: 1.5; }
 
     .card-body { padding: 26px 32px 30px; }
@@ -138,7 +141,7 @@
 <div class="card">
   <div class="card-header">
     <div class="admin-badge"><i class="fas fa-user-shield"></i> Admin Registration</div>
-    <h2>Create Admin Account</h2>
+    <h1>Create Admin Account</h1>
     <p>This page is restricted. You need the secret admin code to register.</p>
   </div>
 
@@ -154,7 +157,7 @@
     </div>
 
     <div class="form-group">
-      <label>Full Name <span style="color:#e03d3d;">*</span></label>
+      <label for="fullName">Full Name <span style="color:#e03d3d;">*</span></label>
       <div class="input-wrap">
         <i class="icon fas fa-user"></i>
         <input type="text" id="fullName" placeholder="e.g. Suraj Balke" />
@@ -162,7 +165,7 @@
     </div>
 
     <div class="form-group">
-      <label>Admin Email <span style="color:#e03d3d;">*</span></label>
+      <label for="adminEmail">Admin Email <span style="color:#e03d3d;">*</span></label>
       <div class="input-wrap">
         <i class="icon fas fa-envelope"></i>
         <input type="email" id="adminEmail" placeholder="admin@clickcabs.in" />
@@ -170,7 +173,7 @@
     </div>
 
     <div class="form-group">
-      <label>Password <span style="color:#e03d3d;">*</span></label>
+      <label for="adminPassword">Password <span style="color:#e03d3d;">*</span></label>
       <div class="input-wrap">
         <i class="icon fas fa-lock"></i>
         <input type="password" id="adminPassword" placeholder="Min. 8 characters" />
@@ -181,7 +184,7 @@
     </div>
 
     <div class="form-group">
-      <label>Confirm Password <span style="color:#e03d3d;">*</span></label>
+      <label for="confirmPassword">Confirm Password <span style="color:#e03d3d;">*</span></label>
       <div class="input-wrap">
         <i class="icon fas fa-lock"></i>
         <input type="password" id="confirmPassword" placeholder="Repeat password" />
@@ -196,7 +199,7 @@
     </div>
 
     <div class="form-group">
-      <label>Secret Admin Code <span style="color:#e03d3d;">*</span></label>
+      <label for="secretCode">Secret Admin Code <span style="color:#e03d3d;">*</span></label>
       <div class="input-wrap">
         <i class="icon fas fa-key"></i>
         <input type="password" id="secretCode" class="secret" placeholder="Enter secret code" />

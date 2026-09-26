@@ -213,9 +213,11 @@
       .search-input-wrap { margin-left: 0; width: 100%; }
       .content { padding: 18px 12px; }
     }
-  </style>
+      .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+</style>
 </head>
 <body>
+<h1 class="sr-only">Click Cabs — Bookings</h1>
 
 <div class="topbar">
   <div class="topbar-left">
@@ -266,7 +268,7 @@
     <button class="filter-btn" data-status="cancelled">Cancelled</button>
     <div class="search-input-wrap">
       <i class="fas fa-search"></i>
-      <input class="search-input" id="searchBox" type="search" placeholder="Name, mobile or CC-reference…" />
+      <input aria-label="Name, mobile or CC-reference" class="search-input" id="searchBox" type="search" placeholder="Name, mobile or CC-reference…" />
     </div>
   </div>
 

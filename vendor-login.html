@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Vendor Login – Click Cabs</title>
+  <link rel="icon" type="image/png" href="https://clickcab-7fv3.vercel.app/images/favicon.png" />
+  <meta name="description" content="Vendor sign-in for Click Cabs partners — manage your fleet, documents and application status." />
+  <meta name="theme-color" content="#01456c" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -115,7 +118,7 @@
       box-shadow: 0 4px 16px rgba(0,0,0,0.20);
     }
 
-    .card-header h2 {
+    .card-header h1 {
       font-size: 1.5rem;
       font-weight: 800;
       margin-bottom: 6px;
@@ -183,13 +186,13 @@
       margin-bottom: 24px;
     }
 
-    .forgot a {
+    .forgot a, .forgot .cc-forgot {
       font-size: 0.82rem;
       color: var(--blue);
       text-decoration: none;
     }
 
-    .forgot a:hover { text-decoration: underline; }
+    .forgot a:hover, .forgot .cc-forgot:hover { text-decoration: underline; }
 
     /* ── LOGIN BTN ── */
     .login-btn {
@@ -282,7 +285,17 @@
       .card-header { padding: 28px 20px 22px; }
       nav { padding: 0 18px; }
     }
-  </style>
+  
+    /* "Forgot password?" is a button now, styled exactly like the link it replaced */
+    .cc-forgot { background: none; border: 0; padding: 0; font: inherit; cursor: pointer; }
+    .cc-forgot:focus-visible { outline: 2px solid #f5a800; outline-offset: 2px; border-radius: 3px; }
+    .cc-forgot:disabled { opacity: 0.6; cursor: wait; }
+    .cc-reset-msg { display: none; border-radius: 8px; padding: 10px 14px; font-size: 0.83rem; line-height: 1.5; margin: 0 0 16px; }
+    .cc-reset-msg.show { display: block; }
+    .cc-reset-msg.ok   { background: #eaf7ef; border: 1px solid #bfe5cc; color: #1a6e41; }
+    .cc-reset-msg.err  { background: #fff0f0; border: 1px solid #f5c6c6; color: #c0392b; }
+    .cc-reset-msg.info { background: #eef4f9; border: 1px solid #cfe0ee; color: #01456c; }
+</style>
 </head>
 <body>
 
@@ -302,7 +315,7 @@
     <!-- HEADER -->
     <div class="card-header">
       <img src="https://clickcab-7fv3.vercel.app/images/logo.jpg" alt="Click Cabs" class="card-logo" />
-      <h2>Vendor Portal</h2>
+      <h1>Vendor Portal</h1>
       <p>Log in to manage your Click Cabs fleet</p>
     </div>
 
@@ -316,7 +329,7 @@
       </div>
 
       <div class="form-group">
-        <label>Email Address</label>
+        <label for="loginEmail">Email Address</label>
         <div class="input-wrap">
           <i class="fas fa-envelope"></i>
           <input type="email" id="loginEmail" placeholder="you@company.com" required />
@@ -324,7 +337,7 @@
       </div>
 
       <div class="form-group">
-        <label>Password</label>
+        <label for="loginPassword">Password</label>
         <div class="input-wrap">
           <i class="fas fa-lock"></i>
           <input type="password" id="loginPassword" placeholder="Enter your password" required />
@@ -332,7 +345,7 @@
       </div>
 
       <div class="forgot">
-        <a href="#">Forgot password?</a>
+        <button type="button" class="cc-forgot">Forgot password?</button>
       </div>
 
       <button class="login-btn" id="loginBtn">
@@ -413,9 +426,63 @@
   // Wire button and Enter key inside module
   document.getElementById('loginBtn').addEventListener('click', handleLogin);
   document.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') handleLogin();
+    if (e.key === 'Enter' && e.target.tagName === 'INPUT') handleLogin();
   });
 </script>
 
+
+<script type="module">
+  /* "Forgot password?" used to be href="#" and did nothing, so anyone who
+     forgot their password was simply locked out. Firebase sends the reset
+     email itself: free, and no backend needed.
+
+     The success message is worded the same whether or not the address has
+     an account, so this form cannot be used to find out who is registered.
+
+     This module reuses the Firebase app the page has already started, so it
+     works the same on the customer, partner and admin login pages. */
+  import { getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+  const btn = document.querySelector('.cc-forgot');
+  const emailEl = document.getElementById('loginEmail');
+  if (btn && emailEl) {
+    const box = document.createElement('div');
+    box.className = 'cc-reset-msg';
+    box.setAttribute('role', 'status');
+    box.setAttribute('aria-live', 'polite');
+    btn.parentElement.insertAdjacentElement('afterend', box);
+
+    const say = (kind, text) => { box.className = 'cc-reset-msg show ' + kind; box.textContent = text; };
+    const sent = (email) => say('ok', 'If ' + email + ' has an account, a reset link is on its way. Check your inbox and spam folder.');
+
+    btn.addEventListener('click', async () => {
+      const email = emailEl.value.trim();
+      if (!email) {
+        say('err', 'Type your email address above, then tap "Forgot password?" again.');
+        emailEl.focus();
+        return;
+      }
+      const app = getApps()[0];
+      if (!app) { say('err', 'Still loading. Please try again in a moment.'); return; }
+
+      btn.disabled = true;
+      say('info', 'Sending a reset link\u2026');
+      try {
+        await sendPasswordResetEmail(getAuth(app), email);
+        sent(email);
+      } catch (err) {
+        const code = (err && err.code) || '';
+        if (code === 'auth/user-not-found') sent(email);
+        else if (code === 'auth/invalid-email') say('err', 'That email address does not look right.');
+        else if (code === 'auth/too-many-requests') say('err', 'Too many attempts. Please wait a few minutes and try again.');
+        else if (code === 'auth/network-request-failed') say('err', 'Could not reach the server. Check your connection and try again.');
+        else say('err', 'Could not send the reset email (' + (code || 'unknown error') + ').');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  }
+</script>
 </body>
 </html>

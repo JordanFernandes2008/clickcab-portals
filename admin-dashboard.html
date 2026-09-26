@@ -258,9 +258,11 @@
       cursor: pointer; text-decoration: none; font-family: inherit;
     }
     .fail-box a.secondary { background: #fff; color: #a3271e; border: 1px solid #e2b6b1; }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 </style>
 </head>
 <body>
+<h1 class="sr-only">Click Cabs — Vendor applications</h1>
 
 <div class="topbar">
   <div class="topbar-left">
@@ -297,7 +299,7 @@
     <button class="filter-btn" onclick="filterVendors('old',this)">Old</button>
     <div class="search-input-wrap">
       <i class="fas fa-search"></i>
-      <input type="text" class="search-input" id="searchInput" placeholder="Search name, city, vehicle…" oninput="searchVendors()" />
+      <input aria-label="Search name, city, vehicle" type="text" class="search-input" id="searchInput" placeholder="Search name, city, vehicle…" oninput="searchVendors()" />
     </div>
   </div>
 
@@ -331,7 +333,7 @@
     <div class="modal-body" id="modalBody"></div>
     <div class="status-actions" id="statusActions"></div>
     <div class="reason-box" id="reasonBox">
-      <label id="reasonLabel">Reason</label>
+      <label id="reasonLabel" for="reasonText">Reason</label>
       <textarea id="reasonText" placeholder="Enter reason…"></textarea>
       <button class="reason-submit-btn" id="reasonSubmitBtn">Confirm</button>
     </div>
