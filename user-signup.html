@@ -2,6 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
+  <script>
+    /* Opened at the portals' own address? Move to the same page on the main
+       site's /account/ address, so this login is shared with the main site's
+       header (browsers keep logins separate per address). Served through
+       /account/ the hostname is the main site's, so this never loops. */
+    if (location.hostname === 'clickcab-portals.vercel.app') {
+      location.replace('https://clickcab-7fv3.vercel.app/account' + location.pathname + location.search + location.hash);
+    }
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Create Account – Click Cabs</title>
   <link rel="icon" type="image/png" href="https://clickcab-7fv3.vercel.app/images/favicon.png" />
