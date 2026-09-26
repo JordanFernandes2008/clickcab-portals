@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <script>
+    /* same guard as the other portal pages: the Vercel copy lives at /account/ */
+    if (location.hostname === 'clickcab-portals.vercel.app') {
+      location.replace('https://clickcab-7fv3.vercel.app/account' + location.pathname + location.search + location.hash);
+    }
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Logging Out – Click Cabs</title>
+  <meta name="robots" content="noindex" />
+  <meta name="description" content="Signing you out of Click Cabs." />
+  <meta name="theme-color" content="#01456c" />
+  <link rel="icon" type="image/png" href="https://clickcabs.in/images/favicon.png" />
+  <style>
+    body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+           background: #01456c; color: #fff; font-family: 'Segoe UI', system-ui, sans-serif; text-align: center; }
+    h1 { font-size: 1.1rem; font-weight: 700; margin: 0 0 .4rem; }
+    p { font-size: .9rem; color: rgba(255,255,255,.75); margin: 0; }
+    a { color: #f5a800; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1 id="msg" role="status" aria-live="polite">Logging you out&hellip;</h1>
+    <p id="sub">You will be taken back in a moment.</p>
+  </main>
+<script type="module">
+  /* The main site's "Log out" button sends people here, because the login
+     lives on the portal's address, so this is the only place it can be
+     ended. Signs out, clears the shared cc_auth cookie, then returns the
+     visitor to the page they came from. Only our own sites are allowed as
+     the destination, so this link cannot be used to redirect anyone else. */
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+  const onProd = /(^|\.)clickcabs\.in$/i.test(location.hostname);
+  const home = onProd ? 'https://clickcabs.in/' : '/';
+  const OURS = /^(www\.)?clickcabs\.in$|^clickcab-7fv3\.vercel\.app$/i;
+
+  function safeNext(raw) {
+    if (!raw) return home;
+    try {
+      const u = new URL(raw, location.href);
+      if (u.protocol === 'https:' && OURS.test(u.hostname)) return u.href;
+      if (u.origin === location.origin) return u.href;
+    } catch (e) { /* not a URL */ }
+    return home;
+  }
+  const next = safeNext(new URLSearchParams(location.search).get('next'));
+
+  const scope = '; Path=/; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : '');
+  document.cookie = 'cc_auth=' + scope + '; Max-Age=0' + (onProd ? '; Domain=.clickcabs.in' : '');
+  document.cookie = 'cc_auth=' + scope + '; Max-Age=0';          // any host-only copy too
+  try { localStorage.removeItem('cc_auth_hint'); } catch (e) {}
+
+  try {
+    const auth = getAuth(initializeApp({
+      apiKey: "AIzaSyCoITUbvm1c0-Ud9VN_jVOZg99dg42jPgY",
+      authDomain: "clickcabs-772bd.firebaseapp.com",
+      projectId: "clickcabs-772bd",
+      storageBucket: "clickcabs-772bd.firebasestorage.app",
+      messagingSenderId: "861153834886",
+      appId: "1:861153834886:web:eae295a297c47120c31e07"
+    }));
+    await signOut(auth);
+  } catch (e) {
+    /* Even if Firebase is unreachable the header cookie is already gone, so
+       the site shows "Log in". Say so rather than pretending. */
+    console.warn('Sign-out did not complete:', e);
+    document.getElementById('sub').textContent = 'Could not reach the sign-in service, but you are logged out of this device.';
+  }
+  location.replace(next);
+</script>
+</body>
+</html>

@@ -13,7 +13,7 @@
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Vendor Dashboard – Click Cabs</title>
-  <link rel="icon" type="image/png" href="https://clickcab-7fv3.vercel.app/images/favicon.png" />
+  <link rel="icon" type="image/png" href="https://clickcabs.in/images/favicon.png" />
   <meta name="description" content="Click Cabs vendor dashboard — track your application status and upload required documents." />
   <meta name="theme-color" content="#01456c" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
@@ -133,7 +133,7 @@
 
 <div class="topbar">
   <div class="topbar-left">
-    <img src="https://clickcab-7fv3.vercel.app/images/logo.jpg" alt="Click Cabs"/>
+    <img src="https://clickcabs.in/images/logo.jpg" alt="Click Cabs"/>
     <span class="topbar-title">Click<span>Cabs</span></span>
   </div>
   <div class="topbar-right">
@@ -431,26 +431,33 @@
 </script>
 
 <script type="module">
-  /* Tells the main site that someone is signed in, so its header shows
-     "Log out" instead of "Log in". It stores only the first letter of the
-     email, never the address or any token. Shared with the main site only
-     when this page is opened through it at /account/ (same address, same
-     browser storage). Reuses the Firebase app this page already started. */
+  /* Tells the main site's header whether someone is signed in, so it can
+     show "Log out". Sets a cookie, cc_auth, holding only the first letter of
+     the user's name or email: never the address, never a token.
+     Production: scoped to .clickcabs.in, so clickcabs.in can read a login
+     made here on portal.clickcabs.in (each address's own storage is kept
+     separate by the browser; a parent-domain cookie is shared by design).
+     Staging: these pages are served from the main site's own address at
+     /account/, so an ordinary cookie is enough.
+     Reuses the Firebase app this page already started. */
   import { getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  const onProd = /(^|\.)clickcabs\.in$/i.test(location.hostname);
+  const scope = '; Path=/; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : '')
+              + (onProd ? '; Domain=.clickcabs.in' : '');
+  const setAuthCookie = (initial) => {
+    document.cookie = initial
+      ? 'cc_auth=' + encodeURIComponent(initial) + scope + '; Max-Age=2592000'
+      : 'cc_auth=' + scope + '; Max-Age=0';
+  };
   let tries = 0;
   (function watch() {
     const app = getApps()[0];
     if (!app) { if (++tries < 25) setTimeout(watch, 200); return; }
     onAuthStateChanged(getAuth(app), (user) => {
-      try {
-        if (user) {
-          const s = String(user.displayName || user.email || '?').trim();
-          localStorage.setItem('cc_auth_hint', (s.charAt(0) || '?').toUpperCase());
-        } else {
-          localStorage.removeItem('cc_auth_hint');
-        }
-      } catch (e) { /* private mode: the main site simply shows "Log in" */ }
+      const s = user ? String(user.displayName || user.email || '?').trim() : '';
+      setAuthCookie(user ? (s.charAt(0) || '?').toUpperCase() : '');
+      try { localStorage.removeItem('cc_auth_hint'); } catch (e) {}   // the old marker, no longer read
     });
   })();
 </script>
