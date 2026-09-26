@@ -246,6 +246,7 @@
   }
 
   async function handleRegister() {
+    if (document.getElementById('registerBtn').disabled) return;
     const fullName = document.getElementById('fullName').value.trim();
     const email = document.getElementById('adminEmail').value.trim();
     const password = document.getElementById('adminPassword').value;
@@ -292,7 +293,8 @@
   }
 
   document.getElementById('registerBtn').addEventListener('click', handleRegister);
-  document.addEventListener('keydown', e => { if (e.key === 'Enter') handleRegister(); });
+  // Enter only from a text field, and not while a request is already running
+  document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') handleRegister(); });
 </script>
 
 </body>

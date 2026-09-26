@@ -144,6 +144,12 @@
       .step-label { display: none; }
       .info-box { margin: 0 18px 16px; }
     }
+    .form-error { background: #fff0f0; border: 1px solid #f5c6c6; border-radius: 8px; padding: 10px 14px;
+                  font-size: 0.86rem; line-height: 1.5; color: #c0392b; margin: 0 0 14px; text-align: left; }
+    .reapply-note { background: #fff8e6; border: 1px solid #f5e4a0; color: #7a5200; border-radius: 10px;
+                    padding: 12px 16px; font-size: 0.86rem; line-height: 1.5; margin: 20px 32px 0; }
+    .reapply-note a { color: #01456c; font-weight: 700; }
+    @media (max-width: 600px) { .reapply-note { margin: 16px 18px 0; } }
   </style>
 </head>
 <body>
@@ -190,6 +196,7 @@
 <!-- FORM -->
 <div class="form-wrapper">
   <div class="form-card">
+    <div class="reapply-note" id="reapplyNote" role="status" hidden></div>
 
     <!-- SECTION 1: PERSONAL DETAILS -->
     <div class="section-header">
@@ -199,28 +206,28 @@
       <div class="form-grid">
         <div class="form-group">
           <label for="firstName">First Name <span class="req">*</span></label>
-          <input type="text" id="firstName" placeholder="e.g. Ramesh" required />
+          <input type="text" id="firstName" placeholder="e.g. Ramesh" autocomplete="given-name" required />
         </div>
         <div class="form-group">
           <label for="lastName">Last Name <span class="req">*</span></label>
-          <input type="text" id="lastName" placeholder="e.g. Sharma" required />
+          <input type="text" id="lastName" placeholder="e.g. Sharma" autocomplete="family-name" required />
         </div>
         <div class="form-group">
           <label for="phone">Mobile Number <span class="req">*</span></label>
-          <input type="tel" id="phone" placeholder="+91 98765 43210" required />
+          <input type="tel" id="phone" placeholder="+91 98765 43210" autocomplete="tel" required />
           <span class="hint">You'll receive updates on this number</span>
         </div>
         <div class="form-group">
           <label for="email">Email Address <span class="req">*</span></label>
-          <input type="email" id="email" placeholder="you@gmail.com" required />
+          <input type="email" id="email" placeholder="you@gmail.com" autocomplete="email" required />
         </div>
         <div class="form-group">
           <label for="password">Password <span class="req">*</span></label>
-          <input type="password" id="password" placeholder="Min. 8 characters" required />
+          <input type="password" id="password" placeholder="Min. 8 characters" autocomplete="new-password" required />
         </div>
         <div class="form-group">
           <label for="confirmPassword">Confirm Password <span class="req">*</span></label>
-          <input type="password" id="confirmPassword" placeholder="Repeat password" required />
+          <input type="password" id="confirmPassword" placeholder="Repeat password" autocomplete="new-password" required />
         </div>
         <div class="form-group">
           <label for="operatingCity">City You Operate In <span class="req">*</span></label>
@@ -373,6 +380,7 @@
         <a href="#">Partner Terms</a> and <a href="https://clickcabs.in/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.
         Your details are safe with us.
       </p>
+      <div class="form-error" id="formError" role="alert" hidden></div>
       <button class="submit-btn" id="signupBtn">
         <i class="fas fa-paper-plane" style="margin-right:8px;"></i>Submit Application
       </button>
@@ -385,9 +393,8 @@
 <!-- Firebase -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
+  import { getAuth, createUserWithEmailAndPassword, deleteUser, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   const firebaseConfig = {
     apiKey: "AIzaSyCoITUbvm1c0-Ud9VN_jVOZg99dg42jPgY",
     authDomain: "clickcabs-772bd.firebaseapp.com",
@@ -397,96 +404,201 @@
     appId: "1:861153834886:web:eae295a297c47120c31e07",
     measurementId: "G-0Z06RPDWJR"
   };
-
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  async function handleSignup() {
-    const required = [
-      'firstName','lastName','phone','email','password','confirmPassword',
-      'operatingCity','driverType','vehicleType','vehicleModel','vehicleYear',
-      'regNumber','seatingCapacity','fuelType','acAvailable','vehicleCount',
-      'aadhaar','pan','dlNumber','dlExpiry',
-      'addr1','city','state','pin','country'
-    ];
-
-    for (let id of required) {
-      const el = document.getElementById(id);
-      if (!el.value.trim()) {
-        el.focus();
-        el.style.borderColor = '#e03d3d';
-        setTimeout(() => el.style.borderColor = '', 2500);
-        alert('Please fill in all required fields.');
-        return;
-      }
-    }
-
-    const email = document.getElementById('email').value.trim();
-    const pwd = document.getElementById('password').value;
-    const cpwd = document.getElementById('confirmPassword').value;
-    if (pwd !== cpwd) { alert('Passwords do not match.'); return; }
-    if (pwd.length < 8) { alert('Password must be at least 8 characters.'); return; }
-
-    const aadhaar = document.getElementById('aadhaar').value.replace(/\s/g,'');
-    if (aadhaar.length !== 12 || isNaN(aadhaar)) { alert('Please enter a valid 12-digit Aadhaar number.'); return; }
-
-    const pan = document.getElementById('pan').value.trim().toUpperCase();
-    if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(pan)) { alert('Please enter a valid PAN number (e.g. ABCDE1234F).'); return; }
-
-    const btn = document.getElementById('signupBtn');
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i>Submitting…';
-    btn.disabled = true;
-
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, pwd);
-      const uid = userCredential.user.uid;
-
-      await setDoc(doc(db, "vendors", uid), {
-        firstName: document.getElementById('firstName').value.trim(),
-        lastName: document.getElementById('lastName').value.trim(),
-        phone: document.getElementById('phone').value.trim(),
-        email: email,
-        operatingCity: document.getElementById('operatingCity').value.trim(),
-        driverType: document.getElementById('driverType').value,
-        vehicleType: document.getElementById('vehicleType').value,
-        vehicleModel: document.getElementById('vehicleModel').value.trim(),
-        vehicleYear: document.getElementById('vehicleYear').value.trim(),
-        registrationNumber: document.getElementById('regNumber').value.trim().toUpperCase(),
-        seatingCapacity: document.getElementById('seatingCapacity').value,
-        fuelType: document.getElementById('fuelType').value,
-        acAvailable: document.getElementById('acAvailable').value,
-        numberOfVehicles: document.getElementById('vehicleCount').value.trim(),
-        aadhaarNumber: aadhaar,
-        panNumber: pan,
-        dlNumber: document.getElementById('dlNumber').value.trim().toUpperCase(),
-        dlExpiry: document.getElementById('dlExpiry').value,
-        addressLine1: document.getElementById('addr1').value.trim(),
-        addressLine2: document.getElementById('addr2').value.trim(),
-        city: document.getElementById('city').value.trim(),
-        state: document.getElementById('state').value.trim(),
-        pinCode: document.getElementById('pin').value.trim(),
-        country: document.getElementById('country').value.trim(),
-        status: "pending",
-        createdAt: new Date().toISOString()
-      });
-
-      window.location.href = 'vendor-thankyou.html';
-
-    } catch (error) {
-      btn.innerHTML = '<i class="fas fa-paper-plane" style="margin-right:8px;"></i>Submit Application';
-      btn.disabled = false;
-      if (error.code === 'auth/email-already-in-use') {
-        alert('This email is already registered. Please log in instead.');
-      } else if (error.code === 'auth/invalid-email') {
-        alert('Please enter a valid email address.');
-      } else {
-        alert('Error: ' + error.message);
-      }
-    }
+  /* Firebase's own error text ("Firebase: Error (auth/invalid-email).") is
+     not meant for customers. Every code a login or sign-up can realistically
+     hit gets a plain sentence; anything else still names the code. */
+  function friendly(err) {
+    const code = (err && err.code) || '';
+    const said = {
+      'auth/invalid-credential': 'Wrong email or password. Please try again.',
+      'auth/wrong-password': 'Wrong email or password. Please try again.',
+      'auth/user-not-found': 'Wrong email or password. Please try again.',
+      'auth/invalid-email': 'That email address does not look right.',
+      'auth/missing-password': 'Please enter your password.',
+      'auth/user-disabled': 'This account has been switched off. Please contact Click Cabs support.',
+      'auth/too-many-requests': 'Too many attempts. Please wait a few minutes and try again.',
+      'auth/network-request-failed': 'Could not connect. Check your internet and try again.',
+      'auth/email-already-in-use': 'This email is already registered. Please log in instead.',
+      'auth/weak-password': 'That password is too weak. Use at least 8 characters.',
+      'auth/operation-not-allowed': 'Sign-in is switched off right now. Please contact Click Cabs support.',
+      'unavailable': 'Could not connect. Check your internet and try again.',
+      'permission-denied': 'The server refused this request. Please contact Click Cabs support.'
+    };
+    return said[code] || ('Something went wrong' + (code ? ' (' + code + ')' : '') + '. Please try again.');
   }
 
-  document.getElementById('signupBtn').addEventListener('click', handleSignup);
+  const $ = (id) => document.getElementById(id);
+  const btn = $('signupBtn');
+  let BTN_IDLE = btn.innerHTML;
+  const errBox = $('formError');
+  let busy = false;
+  let reapplyUid = null;   // set when a rejected / reverify partner is resubmitting
+
+  // form field id -> field name in the vendors record
+  const FIELDS = {
+    firstName: 'firstName', lastName: 'lastName', phone: 'phone',
+    operatingCity: 'operatingCity', driverType: 'driverType', vehicleType: 'vehicleType',
+    vehicleModel: 'vehicleModel', vehicleYear: 'vehicleYear', regNumber: 'registrationNumber',
+    seatingCapacity: 'seatingCapacity', fuelType: 'fuelType', acAvailable: 'acAvailable',
+    vehicleCount: 'numberOfVehicles', aadhaar: 'aadhaarNumber', pan: 'panNumber',
+    dlNumber: 'dlNumber', dlExpiry: 'dlExpiry', addr1: 'addressLine1', addr2: 'addressLine2',
+    city: 'city', state: 'state', pin: 'pinCode', country: 'country'
+  };
+  const REQUIRED = [
+    'firstName', 'lastName', 'phone', 'email', 'password', 'confirmPassword',
+    'operatingCity', 'driverType', 'vehicleType', 'vehicleModel', 'vehicleYear',
+    'regNumber', 'seatingCapacity', 'fuelType', 'acAvailable', 'vehicleCount',
+    'aadhaar', 'pan', 'dlNumber', 'dlExpiry',
+    'addr1', 'city', 'state', 'pin', 'country'
+  ];
+
+  /* Problems are shown next to the button, with the field outlined and
+     scrolled to. This page used pop-up alerts for all of them, which some in-app
+     browsers (WhatsApp's, Instagram's) silently swallow: the button just
+     looked dead. */
+  function showError(msg, fieldId) {
+    errBox.textContent = msg;
+    errBox.hidden = false;
+    if (fieldId) {
+      const f = $(fieldId);
+      f.style.borderColor = '#e03d3d';
+      const clear = () => { f.style.borderColor = ''; };
+      f.addEventListener('input', clear, { once: true });
+      f.addEventListener('change', clear, { once: true });
+      f.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      f.focus({ preventScroll: true });
+    } else {
+      errBox.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+  }
+  function idle() { busy = false; btn.innerHTML = BTN_IDLE; btn.disabled = false; }
+
+  function collect() {
+    const val = (id) => $(id).value.trim();
+    return {
+      firstName: val('firstName'), lastName: val('lastName'), phone: val('phone'),
+      operatingCity: val('operatingCity'), driverType: $('driverType').value,
+      vehicleType: $('vehicleType').value, vehicleModel: val('vehicleModel'),
+      vehicleYear: val('vehicleYear'), registrationNumber: val('regNumber').toUpperCase(),
+      seatingCapacity: $('seatingCapacity').value, fuelType: $('fuelType').value,
+      acAvailable: $('acAvailable').value, numberOfVehicles: val('vehicleCount'),
+      aadhaarNumber: $('aadhaar').value.replace(/\s/g, ''), panNumber: val('pan').toUpperCase(),
+      dlNumber: val('dlNumber').toUpperCase(), dlExpiry: $('dlExpiry').value,
+      addressLine1: val('addr1'), addressLine2: val('addr2'),
+      city: val('city'), state: val('state'), pinCode: val('pin'), country: val('country')
+    };
+  }
+
+  function validate() {
+    const needed = REQUIRED.filter(id => !(reapplyUid && (id === 'password' || id === 'confirmPassword')));
+    const empty = needed.find(id => !($(id).value || '').trim());
+    if (empty) {
+      const label = document.querySelector('label[for="' + empty + '"]');
+      showError('Please fill in: ' + (label ? label.textContent.replace('*', '').trim() : 'all required fields') + '.', empty);
+      return false;
+    }
+    const d = collect();
+    const digits = d.phone.replace(/\D/g, '').length;
+    if (digits < 10 || digits > 13) { showError('Please enter a valid 10-digit mobile number.', 'phone'); return false; }
+    if (!reapplyUid) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test($('email').value.trim())) { showError('That email address does not look right.', 'email'); return false; }
+      if ($('password').value.length < 8) { showError('Password must be at least 8 characters.', 'password'); return false; }
+      if ($('password').value !== $('confirmPassword').value) { showError('Passwords do not match.', 'confirmPassword'); return false; }
+    }
+    const year = Number(d.vehicleYear);
+    if (!(year >= 1990 && year <= new Date().getFullYear() + 1)) { showError('Please enter the vehicle year, for example 2020.', 'vehicleYear'); return false; }
+    if (!(Number(d.numberOfVehicles) >= 1)) { showError('Number of vehicles must be at least 1.', 'vehicleCount'); return false; }
+    if (!/^\d{12}$/.test(d.aadhaarNumber)) { showError('Please enter a valid 12-digit Aadhaar number.', 'aadhaar'); return false; }
+    if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(d.panNumber)) { showError('Please enter a valid PAN number (e.g. ABCDE1234F).', 'pan'); return false; }
+    if (!/^\d{6}$/.test(d.pinCode)) { showError('Please enter a valid 6-digit PIN code.', 'pin'); return false; }
+    return true;
+  }
+
+  async function handleSignup() {
+    if (busy) return;
+    errBox.hidden = true;
+    if (!validate()) return;
+    busy = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i>Submitting…';
+    btn.disabled = true;
+    const data = collect();
+
+    if (reapplyUid) {
+      try {
+        await updateDoc(doc(db, 'vendors', reapplyUid), { ...data, status: 'pending', reappliedAt: new Date().toISOString() });
+        window.location.href = 'vendor-thankyou.html';
+      } catch (err) {
+        idle(); showError('Could not resubmit your application. ' + friendly(err));
+      }
+      return;
+    }
+
+    const email = $('email').value.trim();
+    let cred;
+    try {
+      cred = await createUserWithEmailAndPassword(auth, email, $('password').value);
+    } catch (err) {
+      idle();
+      if (err && err.code === 'auth/email-already-in-use') {
+        showError('This email is already registered. If it is your partner account, log in instead: you can resubmit from your dashboard.', 'email');
+      } else {
+        showError(friendly(err));
+      }
+      return;
+    }
+    try {
+      await setDoc(doc(db, 'vendors', cred.user.uid), { ...data, email, status: 'pending', createdAt: new Date().toISOString() });
+    } catch (err) {
+      /* Login made, application not saved: undo the login, or this email
+         could never apply again ("already registered"). */
+      try { await deleteUser(cred.user); } catch (e) { console.warn('rollback failed:', e); }
+      idle(); showError('Your application could not be saved. ' + friendly(err));
+      return;
+    }
+    window.location.href = 'vendor-thankyou.html';
+  }
+  btn.addEventListener('click', handleSignup);
+
+  /* A partner whose application was rejected, or who was asked to reverify,
+     is sent here from the dashboard. They already have a login, so this
+     form used to fail with "already registered" and they could never
+     resubmit. Now it fills in their current details, and submitting
+     updates that same application back to "pending". Checked once, on
+     arrival only, so it never interferes with a new sign-up. */
+  let arrived = true;
+  onAuthStateChanged(auth, async (user) => {
+    if (!arrived || busy) return;
+    arrived = false;
+    if (!user) return;
+    let snap;
+    try { snap = await getDoc(doc(db, 'vendors', user.uid)); } catch (e) { return; }
+    if (!snap.exists()) return;
+    const v = snap.data();
+    const note = $('reapplyNote');
+    if (v.status === 'rejected' || v.status === 'reverify') {
+      reapplyUid = user.uid;
+      Object.entries(FIELDS).forEach(([id, key]) => { if (v[key] != null && $(id)) $(id).value = v[key]; });
+      $('email').value = v.email || user.email || '';
+      $('email').readOnly = true;
+      ['password', 'confirmPassword'].forEach(id => {
+        const group = $(id).closest('.form-group');
+        if (group) group.style.display = 'none';
+      });
+      note.textContent = 'You are resubmitting your application.'
+        + (v.adminNote ? ' Our team asked: "' + v.adminNote + '".' : '')
+        + ' Correct the details below and submit again.';
+      note.hidden = false;
+      BTN_IDLE = '<i class="fas fa-paper-plane" style="margin-right:8px;"></i>Resubmit Application';
+      btn.innerHTML = BTN_IDLE;
+    } else {
+      note.innerHTML = 'You already have a partner account. <a href="vendor-dashboard.html">Go to your dashboard</a>.';
+      note.hidden = false;
+    }
+  });
 </script>
 
 
@@ -520,6 +632,14 @@
       try { localStorage.removeItem('cc_auth_hint'); } catch (e) {}   // the old marker, no longer read
     });
   })();
+
+  /* Links back to the main site name clickcabs.in. On the staging copy the
+     main site is this same address, so point them at its home page. */
+  if (!onProd) {
+    document.querySelectorAll('a[href^="https://clickcabs.in/"]').forEach(a => {
+      a.setAttribute('href', '/' + a.getAttribute('href').slice('https://clickcabs.in/'.length));
+    });
+  }
 </script>
 </body>
 </html>

@@ -88,23 +88,23 @@
       <div class="error-msg" id="errorMsg"><i class="fas fa-exclamation-circle"></i><span id="errorText">Invalid email or password.</span></div>
       <div class="form-group">
         <label for="loginEmail">Email Address</label>
-        <div class="input-wrap"><i class="fas fa-envelope"></i><input type="email" id="loginEmail" placeholder="you@gmail.com"/></div>
+        <div class="input-wrap"><i class="fas fa-envelope"></i><input type="email" id="loginEmail" placeholder="you@gmail.com" autocomplete="email"/></div>
       </div>
       <div class="form-group">
         <label for="loginPassword">Password</label>
-        <div class="input-wrap"><i class="fas fa-lock"></i><input type="password" id="loginPassword" placeholder="Enter your password"/></div>
+        <div class="input-wrap"><i class="fas fa-lock"></i><input type="password" id="loginPassword" placeholder="Enter your password" autocomplete="current-password"/></div>
       </div>
       <div class="forgot"><button type="button" class="cc-forgot">Forgot password?</button></div>
       <button class="login-btn" id="loginBtn"><i class="fas fa-sign-in-alt"></i> Log In</button>
       <div class="divider">or</div>
       <p class="signup-prompt">New here? <a href="user-signup.html">Create a free account</a></p>
     </div>
-    <div class="back-link"><a href="index.html"><i class="fas fa-arrow-left"></i> Back to home</a></div>
+    <div class="back-link"><a href="https://clickcabs.in/"><i class="fas fa-arrow-left"></i> Back to Click Cabs website</a></div>
   </div>
 </div>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getAuth, signInWithEmailAndPassword, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   const firebaseConfig = {
     apiKey: "AIzaSyCoITUbvm1c0-Ud9VN_jVOZg99dg42jPgY",
@@ -117,44 +117,91 @@
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
-  await setPersistence(auth, browserLocalPersistence);
+  const MAIN_SITE = /(^|\.)clickcabs\.in$/i.test(location.hostname) ? 'https://clickcabs.in/' : '/';
 
-  function showError(msg) {
-    const el = document.getElementById('errorMsg');
-    document.getElementById('errorText').textContent = msg;
-    el.style.display = 'flex';
+  /* Firebase's own error text ("Firebase: Error (auth/invalid-email).") is
+     not meant for customers. Every code a login or sign-up can realistically
+     hit gets a plain sentence; anything else still names the code. */
+  function friendly(err) {
+    const code = (err && err.code) || '';
+    const said = {
+      'auth/invalid-credential': 'Wrong email or password. Please try again.',
+      'auth/wrong-password': 'Wrong email or password. Please try again.',
+      'auth/user-not-found': 'Wrong email or password. Please try again.',
+      'auth/invalid-email': 'That email address does not look right.',
+      'auth/missing-password': 'Please enter your password.',
+      'auth/user-disabled': 'This account has been switched off. Please contact Click Cabs support.',
+      'auth/too-many-requests': 'Too many attempts. Please wait a few minutes and try again.',
+      'auth/network-request-failed': 'Could not connect. Check your internet and try again.',
+      'auth/email-already-in-use': 'This email is already registered. Please log in instead.',
+      'auth/weak-password': 'That password is too weak. Use at least 8 characters.',
+      'auth/operation-not-allowed': 'Sign-in is switched off right now. Please contact Click Cabs support.',
+      'unavailable': 'Could not connect. Check your internet and try again.',
+      'permission-denied': 'The server refused this request. Please contact Click Cabs support.'
+    };
+    return said[code] || ('Something went wrong' + (code ? ' (' + code + ')' : '') + '. Please try again.');
   }
 
+  const btn = document.getElementById('loginBtn');
+  const BTN_IDLE = btn.innerHTML;
+  let busy = false;
+
+  function showError(msg, link) {
+    const text = document.getElementById('errorText');
+    text.textContent = msg;
+    if (link) {
+      const a = document.createElement('a');
+      a.href = link.href;
+      a.textContent = link.text;
+      a.style.cssText = 'color:inherit;font-weight:700;';
+      text.append(' ', a);
+    }
+    document.getElementById('errorMsg').style.display = 'flex';
+  }
+  function idle() { busy = false; btn.innerHTML = BTN_IDLE; btn.disabled = false; }
+
   async function handleLogin() {
+    if (busy) return;
     const email = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value;
     document.getElementById('errorMsg').style.display = 'none';
     if (!email || !password) { showError('Please enter both email and password.'); return; }
-    const btn = document.getElementById('loginBtn');
+    busy = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in…';
     btn.disabled = true;
+
+    let cred;
     try {
-      const cred = await signInWithEmailAndPassword(auth, email, password);
-      // Make sure this is a user, not vendor or admin
-      const userDoc = await getDoc(doc(db, "users", cred.user.uid));
-      if (!userDoc.exists()) {
-        await auth.signOut();
-        showError('No user account found. Are you a vendor or admin?');
-        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Log In';
-        btn.disabled = false;
+      cred = await signInWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      idle(); showError(friendly(err)); return;
+    }
+
+    /* Customers have a document in /users. A partner login is signed
+       straight back out and pointed at the partner page, instead of being
+       left half signed in here. */
+    try {
+      if ((await getDoc(doc(db, 'users', cred.user.uid))).exists()) {
+        window.location.href = MAIN_SITE;
         return;
       }
-      window.location.href = (/(^|\.)clickcabs\.in$/i.test(location.hostname) ? 'https://clickcabs.in/' : '/');
+      const partner = await getDoc(doc(db, 'vendors', cred.user.uid)).then(snap => snap.exists(), () => false);
+      await signOut(auth);
+      idle();
+      if (partner) showError('This is a Cab Partner account.', { href: 'vendor-login.html', text: 'Go to Partner login' });
+      else showError('No customer account was found for this email.', { href: 'user-signup.html', text: 'Create one' });
     } catch (err) {
-      btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Log In';
-      btn.disabled = false;
-      if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') showError('Invalid email or password.');
-      else if (err.code === 'auth/too-many-requests') showError('Too many attempts. Please wait and try again.');
-      else showError('Error: ' + err.message);
+      try { await signOut(auth); } catch (e) {}
+      idle(); showError(friendly(err));
     }
   }
-  document.getElementById('loginBtn').addEventListener('click', handleLogin);
+
+  btn.addEventListener('click', handleLogin);
   document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') handleLogin(); });
+
+  /* Kept from before, but only after the handlers are attached: while it
+     was awaited first, a slow start left the Log In button doing nothing. */
+  try { await setPersistence(auth, browserLocalPersistence); } catch (e) { console.warn('persistence:', e); }
 </script>
 
 <script type="module">
@@ -241,6 +288,14 @@
       try { localStorage.removeItem('cc_auth_hint'); } catch (e) {}   // the old marker, no longer read
     });
   })();
+
+  /* Links back to the main site name clickcabs.in. On the staging copy the
+     main site is this same address, so point them at its home page. */
+  if (!onProd) {
+    document.querySelectorAll('a[href^="https://clickcabs.in/"]').forEach(a => {
+      a.setAttribute('href', '/' + a.getAttribute('href').slice('https://clickcabs.in/'.length));
+    });
+  }
 </script>
 </body>
 </html>

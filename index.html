@@ -139,5 +139,14 @@
   behavior. It has been removed so this page is a static landing/chooser and stays put
   regardless of login state. See chat notes for the tradeoff this creates.
 -->
+<script>
+  /* On the staging copy the main site is this same address: point links to
+     clickcabs.in at it instead of jumping to the live site. */
+  if (!/(^|\.)clickcabs\.in$/i.test(location.hostname)) {
+    document.querySelectorAll('a[href^="https://clickcabs.in/"]').forEach(function (a) {
+      a.setAttribute('href', '/' + a.getAttribute('href').slice(21));
+    });
+  }
+</script>
 </body>
 </html>

@@ -116,20 +116,49 @@ service cloud.firestore {
     // Vendor documents are keyed by the vendor's auth UID
     // (vendor-signup.html: setDoc(doc(db,"vendors", uid))).
     //
-    //   create  a signed-in vendor may file their own application
+    //   create  a signed-in vendor files their own application, always
+    //           as 'pending' (before this, anyone could sign up 'approved')
     //   read    the vendor themselves, or any admin
-    //   update  the vendor themselves (document uploads), or any admin
-    //           (status changes from the admin dashboard)
+    //   update  any admin (status changes from the admin dashboard);
+    //           the vendor only to record uploaded documents, or to
+    //           resubmit after 'rejected' / 'reverify' (back to 'pending').
+    //           Before this a vendor could change their own status.
     //   delete  nobody — applications are archived via status, not removed
     match /vendors/{vendorId} {
-      allow create: if request.auth != null && request.auth.uid == vendorId;
+      function isOwner() {
+        return request.auth != null && request.auth.uid == vendorId;
+      }
 
-      allow read, update: if request.auth != null && (
-                            request.auth.uid == vendorId
-                            || isAdmin()
-                          );
+      allow create: if isOwner() && request.resource.data.status == 'pending';
+
+      allow read: if isOwner() || isAdmin();
+
+      allow update: if isAdmin()
+                    || (isOwner()
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                             .hasOnly(['docsUploaded', 'documents', 'documentsUpdatedAt']))
+                    || (isOwner()
+                        && resource.data.status in ['rejected', 'reverify']
+                        && request.resource.data.status == 'pending'
+                        && !request.resource.data.diff(resource.data).affectedKeys()
+                              .hasAny(['adminNote', 'statusUpdatedAt', 'createdAt', 'email',
+                                       'docsUploaded', 'documents']));
 
       allow delete: if false;
+
+      // One record per uploaded document (vendor-dashboard.html). Kept out
+      // of the vendor record because a record is capped at 1 MiB.
+      match /documents/{docKey} {
+        allow read: if isOwner() || isAdmin();
+        allow create, update: if isOwner()
+                    && docKey in ['rcBook', 'insurance', 'driverLicence', 'aadhaarCard',
+                                  'panCard', 'vehicleFront', 'vehicleInterior', 'vehicleSide']
+                    && request.resource.data.keys().hasOnly(['name', 'type', 'data', 'size', 'uploadedAt'])
+                    && request.resource.data['type'] in ['image/jpeg', 'application/pdf']
+                    && request.resource.data.data is string
+                    && request.resource.data.data.size() < 1000000;
+        allow delete: if false;
+      }
     }
   }
 }

@@ -149,7 +149,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCoITUbvm1c0-Ud9VN_jVOZg99dg42jPgY",
@@ -180,16 +180,76 @@
   let selectedFiles = {};
   let uploadedDocs = {};
 
+  // Anything a partner typed is text, never markup.
+  const esc = (x) => String(x == null ? '' : x).replace(/[&<>"']/g,
+    c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  /* Firebase's own error text ("Firebase: Error (auth/invalid-email).") is
+     not meant for customers. Every code a login or sign-up can realistically
+     hit gets a plain sentence; anything else still names the code. */
+  function friendly(err) {
+    const code = (err && err.code) || '';
+    const said = {
+      'auth/invalid-credential': 'Wrong email or password. Please try again.',
+      'auth/wrong-password': 'Wrong email or password. Please try again.',
+      'auth/user-not-found': 'Wrong email or password. Please try again.',
+      'auth/invalid-email': 'That email address does not look right.',
+      'auth/missing-password': 'Please enter your password.',
+      'auth/user-disabled': 'This account has been switched off. Please contact Click Cabs support.',
+      'auth/too-many-requests': 'Too many attempts. Please wait a few minutes and try again.',
+      'auth/network-request-failed': 'Could not connect. Check your internet and try again.',
+      'auth/email-already-in-use': 'This email is already registered. Please log in instead.',
+      'auth/weak-password': 'That password is too weak. Use at least 8 characters.',
+      'auth/operation-not-allowed': 'Sign-in is switched off right now. Please contact Click Cabs support.',
+      'unavailable': 'Could not connect. Check your internet and try again.',
+      'permission-denied': 'The server refused this request. Please contact Click Cabs support.'
+    };
+    return said[code] || ('Something went wrong' + (code ? ' (' + code + ')' : '') + '. Please try again.');
+  }
+
+  let leaving = false;
   onAuthStateChanged(auth, async (user) => {
+    if (leaving) return;
     if (!user) { window.location.href = 'vendor-login.html'; return; }
     currentUID = user.uid;
-    const snap = await getDoc(doc(db, "vendors", user.uid));
-    if (!snap.exists()) { window.location.href = 'vendor-login.html'; return; }
+    let snap;
+    try {
+      snap = await getDoc(doc(db, "vendors", user.uid));
+    } catch (err) {
+      // Used to leave "Loading your dashboard…" spinning forever.
+      showLoadError(err);
+      return;
+    }
+    if (!snap.exists()) {
+      /* Signed in, but not as a partner. Sign out and say so on the login
+         page, instead of bouncing there silently. */
+      leaving = true;
+      try { await signOut(auth); } catch (e) {}
+      window.location.href = 'vendor-login.html?reason=not-partner';
+      return;
+    }
     const v = snap.data();
-    uploadedDocs = v.documents || {};
+    // older uploads were kept inside the record itself (v.documents)
+    uploadedDocs = Object.assign({}, v.documents || {}, v.docsUploaded || {});
     document.getElementById('vendorNameTag').textContent = `${v.firstName} ${v.lastName}`;
     routeByStatus(v, user.uid);
   });
+
+  function showLoadError(err) {
+    document.getElementById('mainContent').innerHTML = `
+      <div class="blocked-screen">
+        <div class="blocked-card">
+          <div class="blocked-top restricted-top">
+            <div class="blocked-icon"><i class="fas fa-wifi"></i></div>
+            <h2>Could not load your dashboard</h2>
+            <p>${esc(friendly(err))}</p>
+          </div>
+          <div class="blocked-actions">
+            <button class="btn-action btn-reapply" onclick="location.reload()"><i class="fas fa-redo"></i> Try again</button>
+          </div>
+        </div>
+      </div>`;
+  }
 
   document.getElementById('logoutBtn').addEventListener('click', async () => {
     await signOut(auth); window.location.href = 'vendor-login.html';
@@ -197,8 +257,8 @@
 
   function routeByStatus(v, uid) {
     const status = v.status || 'pending';
-    const reason = v.adminNote || '';
-    const name = v.firstName || 'Partner';
+    const reason = esc(v.adminNote || '');
+    const name = esc(v.firstName || 'Partner');
 
     if (status === 'approved' || status === 'pending') {
       renderDashboard(v, uid, status);
@@ -304,22 +364,22 @@
           <div class="card">
             <div class="card-header"><i class="fas fa-user"></i> Your Details</div>
             <div class="card-body">
-              <div class="info-row"><span class="info-label">Name</span><span class="info-value">${v.firstName} ${v.lastName}</span></div>
-              <div class="info-row"><span class="info-label">Phone</span><span class="info-value">${v.phone||'–'}</span></div>
-              <div class="info-row"><span class="info-label">Email</span><span class="info-value">${v.email||'–'}</span></div>
-              <div class="info-row"><span class="info-label">City</span><span class="info-value">${v.operatingCity||'–'}</span></div>
-              <div class="info-row"><span class="info-label">Driver Type</span><span class="info-value">${v.driverType||'–'}</span></div>
+              <div class="info-row"><span class="info-label">Name</span><span class="info-value">${esc(v.firstName)} ${esc(v.lastName)}</span></div>
+              <div class="info-row"><span class="info-label">Phone</span><span class="info-value">${esc(v.phone||'–')}</span></div>
+              <div class="info-row"><span class="info-label">Email</span><span class="info-value">${esc(v.email||'–')}</span></div>
+              <div class="info-row"><span class="info-label">City</span><span class="info-value">${esc(v.operatingCity||'–')}</span></div>
+              <div class="info-row"><span class="info-label">Driver Type</span><span class="info-value">${esc(v.driverType||'–')}</span></div>
             </div>
           </div>
           <div class="card">
             <div class="card-header"><i class="fas fa-car"></i> Vehicle Details</div>
             <div class="card-body">
-              <div class="info-row"><span class="info-label">Model</span><span class="info-value">${v.vehicleModel||'–'}</span></div>
-              <div class="info-row"><span class="info-label">Type</span><span class="info-value">${v.vehicleType||'–'}</span></div>
-              <div class="info-row"><span class="info-label">Year</span><span class="info-value">${v.vehicleYear||'–'}</span></div>
-              <div class="info-row"><span class="info-label">Reg. No.</span><span class="info-value">${v.registrationNumber||'–'}</span></div>
-              <div class="info-row"><span class="info-label">Fuel / AC</span><span class="info-value">${v.fuelType||'–'} / ${v.acAvailable==='yes'?'AC':'Non-AC'}</span></div>
-              <div class="info-row"><span class="info-label">Seating</span><span class="info-value">${v.seatingCapacity||'–'}</span></div>
+              <div class="info-row"><span class="info-label">Model</span><span class="info-value">${esc(v.vehicleModel||'–')}</span></div>
+              <div class="info-row"><span class="info-label">Type</span><span class="info-value">${esc(v.vehicleType||'–')}</span></div>
+              <div class="info-row"><span class="info-label">Year</span><span class="info-value">${esc(v.vehicleYear||'–')}</span></div>
+              <div class="info-row"><span class="info-label">Reg. No.</span><span class="info-value">${esc(v.registrationNumber||'–')}</span></div>
+              <div class="info-row"><span class="info-label">Fuel / AC</span><span class="info-value">${esc(v.fuelType||'–')} / ${v.acAvailable==='yes'?'AC':'Non-AC'}</span></div>
+              <div class="info-row"><span class="info-label">Seating</span><span class="info-value">${esc(v.seatingCapacity||'–')}</span></div>
             </div>
           </div>
 
@@ -327,7 +387,7 @@
             <div class="card-header"><i class="fas fa-file-upload"></i> Documents & Photos</div>
             <div class="card-body">
               ${isApproved ? `
-              <p class="upload-intro">Upload clear photos or scans of your documents. Accepted formats: JPG, PNG, PDF. All 8 are required to complete onboarding.</p>
+              <p class="upload-intro">Upload clear photos or scans of your documents. Photos (JPG or PNG) are resized automatically; PDFs up to 650 KB. All 8 are required to complete onboarding.</p>
               <div class="upload-grid">
                 ${DOC_TYPES.map(d => {
                   const done = uploadedDocs[d.key];
@@ -365,66 +425,158 @@
       </div>`;
   }
 
-  window.fileChosen = function(input) {
+  /* Documents used to be saved as text inside the partner's own record,
+     which Firestore caps at 1 MB in total, so an ordinary phone photo made
+     the save fail. That failure was never caught: the button stuck on
+     "Saving…" after the files had already been marked "Uploaded ✓".
+     Now each document is its own record (vendors/{uid}/documents/{key}),
+     photos are resized in the browser first, and a document is marked
+     uploaded only once it is really saved. Still free: no Storage bucket. */
+  const MAX_CHARS = 950000;            // one Firestore record holds at most 1 MiB
+  const PDF_MAX = 650 * 1024;          // bytes; about 890,000 characters once encoded
+
+  const isPdf = (f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
+  const isImage = (f) => /^image\//.test(f.type) || /\.(jpe?g|png)$/i.test(f.name);
+
+  function readAsDataURL(blob) {
+    return new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result);
+      r.onerror = () => rej(r.error);
+      r.readAsDataURL(blob);
+    });
+  }
+
+  async function shrinkImage(file) {
+    const url = URL.createObjectURL(file);
+    try {
+      const img = await new Promise((res, rej) => {
+        const i = new Image();
+        i.onload = () => res(i);
+        i.onerror = () => rej(new Error('unreadable-image'));
+        i.src = url;
+      });
+      let edge = 1800, quality = 0.82;
+      for (let attempt = 0; attempt < 10; attempt++) {
+        const scale = Math.min(1, edge / Math.max(img.naturalWidth, img.naturalHeight));
+        const c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(img.naturalWidth * scale));
+        c.height = Math.max(1, Math.round(img.naturalHeight * scale));
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#fff';                  // transparent PNG -> white, not black
+        ctx.fillRect(0, 0, c.width, c.height);
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        const data = c.toDataURL('image/jpeg', quality);
+        if (data.length <= MAX_CHARS) return data;
+        if (quality > 0.6) quality -= 0.1; else edge = Math.round(edge * 0.8);
+      }
+      throw new Error('image-too-large');
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  async function prepare(file) {
+    if (isPdf(file)) {
+      if (file.size > PDF_MAX) throw new Error('pdf-too-large');
+      const data = await readAsDataURL(file);
+      return { type: 'application/pdf', data: data.replace(/^data:[^;,]*/, 'data:application/pdf') };
+    }
+    return { type: 'image/jpeg', data: await shrinkImage(file) };
+  }
+
+  function uploadReason(err) {
+    const m = (err && (err.code || err.message)) || '';
+    if (m === 'pdf-too-large') return 'PDF over 650 KB, upload a photo instead';
+    if (m === 'image-too-large' || m === 'unreadable-image') return 'could not read this image, try a JPG';
+    if (m === 'permission-denied') return 'not allowed, please contact Click Cabs support';
+    if (m === 'unavailable' || m === 'auth/network-request-failed') return 'no connection';
+    return m || 'unknown error';
+  }
+
+  function setItem(key, state, text) {
+    const item = document.getElementById(`item_${key}`);
+    const status = document.getElementById(`status_${key}`);
+    if (!item || !status) return;
+    item.classList.toggle('uploaded', state === 'done');
+    item.style.borderColor = state === 'chosen' ? 'var(--yellow)' : state === 'failed' ? '#c0392b' : '';
+    item.style.borderStyle = state === 'chosen' || state === 'failed' ? 'solid' : '';
+    status.textContent = text;
+    status.style.color = { chosen: '#d48e00', failed: '#c0392b', done: '#1a7f4b' }[state] || '';
+    if (state === 'done') {
+      const icon = item.querySelector('.item-icon');
+      if (icon) icon.className = 'fas fa-check-circle item-icon';
+      const input = item.querySelector('input[type=file]');
+      if (input) input.remove();
+    }
+  }
+
+  function say(text, kind) {
+    const note = document.getElementById('uploadNote');
+    if (!note) return;
+    note.textContent = text;
+    note.style.color = kind === 'err' ? '#c0392b' : kind === 'ok' ? '#1a7f4b' : '';
+  }
+
+  window.fileChosen = function (input) {
     const key = input.dataset.key;
     const file = input.files[0];
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { alert('Max file size is 10MB.'); return; }
+    if (!isPdf(file) && !isImage(file)) {
+      delete selectedFiles[key]; input.value = '';
+      setItem(key, 'failed', 'Use JPG, PNG or PDF');
+      say('That file type cannot be used. Please choose a JPG, PNG or PDF.', 'err');
+      return;
+    }
+    if (isPdf(file) && file.size > PDF_MAX) {
+      delete selectedFiles[key]; input.value = '';
+      setItem(key, 'failed', 'PDF too large');
+      say('PDFs can be up to 650 KB. Take a photo of the document instead: photos are resized automatically.', 'err');
+      return;
+    }
     selectedFiles[key] = file;
-    const item = document.getElementById(`item_${key}`);
-    item.style.borderColor = 'var(--yellow)';
-    item.style.borderStyle = 'solid';
-    document.getElementById(`status_${key}`).textContent = file.name.length > 16 ? file.name.substring(0,16)+'…' : file.name;
-    document.getElementById(`status_${key}`).style.color = '#d48e00';
+    setItem(key, 'chosen', file.name.length > 16 ? file.name.substring(0, 16) + '…' : file.name);
+    const n = Object.keys(selectedFiles).length;
+    say(n + ' file' + (n === 1 ? '' : 's') + ' chosen. Click Save Documents.');
   };
 
-  window.uploadAllDocs = async function(uid) {
-    if (Object.keys(selectedFiles).length === 0) { alert('Please select at least one file first.'); return; }
+  window.uploadAllDocs = async function (uid) {
+    const keys = Object.keys(selectedFiles);
+    if (!keys.length) { say('Choose at least one file above first.', 'err'); return; }
     const btn = document.getElementById('submitDocsBtn');
-    const note = document.getElementById('uploadNote');
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
-
-    const newDocs = { ...uploadedDocs };
-    let done = 0;
-    const keys = Object.keys(selectedFiles);
-
-    for (const key of keys) {
-      const file = selectedFiles[key];
-      note.textContent = `Saving ${done+1} of ${keys.length}…`;
-      try {
-        // Convert to base64 and save to Firestore (no Storage needed)
-        const base64 = await new Promise((res, rej) => {
-          const reader = new FileReader();
-          reader.onload = () => res(reader.result);
-          reader.onerror = rej;
-          reader.readAsDataURL(file);
-        });
-        newDocs[key] = { name: file.name, type: file.type, data: base64, uploadedAt: new Date().toISOString() };
-        const item = document.getElementById(`item_${key}`);
-        if (item) {
-          item.classList.add('uploaded');
-          item.style.borderColor = '';
-          item.style.borderStyle = '';
-          item.querySelector('i').className = 'fas fa-check-circle item-icon';
-          document.getElementById(`status_${key}`).textContent = 'Uploaded ✓';
-          document.getElementById(`status_${key}`).style.color = '#1a7f4b';
+    const failed = [];
+    let saved = 0;
+    try {
+      for (const key of keys) {
+        const label = (DOC_TYPES.find(d => d.key === key) || {}).label || key;
+        say(`Saving ${saved + failed.length + 1} of ${keys.length}: ${label}…`);
+        setItem(key, 'chosen', 'Saving…');
+        try {
+          const file = selectedFiles[key];
+          const { type, data } = await prepare(file);
+          const at = new Date().toISOString();
+          await setDoc(doc(db, 'vendors', uid, 'documents', key),
+                       { name: file.name.slice(0, 120), type, data, size: data.length, uploadedAt: at });
+          await updateDoc(doc(db, 'vendors', uid), { ['docsUploaded.' + key]: at, documentsUpdatedAt: at });
+          uploadedDocs[key] = at;
+          delete selectedFiles[key];
+          setItem(key, 'done', 'Uploaded ✓');
+          saved++;
+        } catch (err) {
+          console.warn('upload failed:', key, err);
+          failed.push(label + ' (' + uploadReason(err) + ')');
+          setItem(key, 'failed', 'Not saved');
         }
-        done++;
-      } catch(e) {
-        document.getElementById(`status_${key}`).textContent = 'Failed — retry';
-        document.getElementById(`status_${key}`).style.color = '#c0392b';
       }
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Save Documents';
     }
-
-    await updateDoc(doc(db, "vendors", uid), { documents: newDocs, documentsUpdatedAt: new Date().toISOString() });
-    uploadedDocs = newDocs;
-    selectedFiles = {};
-    note.textContent = `✓ ${done} of ${keys.length} saved successfully!`;
-    btn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Save Documents';
-    btn.disabled = false;
+    if (failed.length) say(`${saved} saved. Not saved: ${failed.join('; ')}. Click Save Documents to retry.`, 'err');
+    else say(`✓ ${saved} document${saved === 1 ? '' : 's'} saved.`, 'ok');
   };
-
   window.doLogout = async function() {
     await signOut(auth); window.location.href = 'vendor-login.html';
   };
@@ -460,6 +612,14 @@
       try { localStorage.removeItem('cc_auth_hint'); } catch (e) {}   // the old marker, no longer read
     });
   })();
+
+  /* Links back to the main site name clickcabs.in. On the staging copy the
+     main site is this same address, so point them at its home page. */
+  if (!onProd) {
+    document.querySelectorAll('a[href^="https://clickcabs.in/"]').forEach(a => {
+      a.setAttribute('href', '/' + a.getAttribute('href').slice('https://clickcabs.in/'.length));
+    });
+  }
 </script>
 </body>
 </html>

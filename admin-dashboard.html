@@ -259,6 +259,17 @@
     }
     .fail-box a.secondary { background: #fff; color: #a3271e; border: 1px solid #e2b6b1; }
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .doc-list { display: grid; gap: 8px; }
+    .doc-row { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap;
+               font-size: 0.85rem; padding: 8px 12px; background: #f8fafc; border-radius: 8px; }
+    .doc-view, .doc-open { background: var(--blue); color: #fff; border: 0; border-radius: 6px; padding: 5px 12px;
+                           font: inherit; font-size: 0.8rem; font-weight: 600; cursor: pointer; text-decoration: none; }
+    .doc-view:disabled { opacity: 0.6; cursor: wait; }
+    .doc-view:focus-visible, .doc-open:focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
+    .doc-missing { color: #8a97a5; font-size: 0.8rem; }
+    .doc-thumb { display: block; flex-basis: 100%; max-width: 100%; max-height: 220px; object-fit: contain;
+                 border-radius: 6px; background: #fff; }
+    .doc-err { flex-basis: 100%; color: #c0392b; font-size: 0.8rem; }
 </style>
 </head>
 <body>
@@ -411,6 +422,76 @@
     restricted: 'ban', reverify: 'redo', old: 'archive'
   };
 
+  // Anything a partner typed is text, never markup.
+  const esc = (x) => String(x == null ? '' : x).replace(/[&<>"']/g,
+    c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  /* Uploaded documents. This page never showed them at all before. New
+     uploads are one record each under vendors/{id}/documents; older ones
+     sit inside the vendor record as v.documents. */
+  const DOC_TYPES = [
+    { key: 'rcBook', label: 'RC Book' }, { key: 'insurance', label: 'Insurance Certificate' },
+    { key: 'driverLicence', label: 'Driver Licence' }, { key: 'aadhaarCard', label: 'Aadhaar Card' },
+    { key: 'panCard', label: 'PAN Card' }, { key: 'vehicleFront', label: 'Vehicle Front Photo' },
+    { key: 'vehicleInterior', label: 'Vehicle Interior' }, { key: 'vehicleSide', label: 'Vehicle Side Photo' }
+  ];
+  function docRows(v) {
+    const legacy = v.documents || {}, index = v.docsUploaded || {};
+    return DOC_TYPES.map(d => {
+      const has = legacy[d.key] || index[d.key];
+      return `<div class="doc-row" data-key="${d.key}"><span>${d.label}</span>` + (has
+        ? `<button type="button" class="doc-view" data-key="${d.key}"><i class="fas fa-eye"></i> View</button>`
+        : `<span class="doc-missing">Not uploaded</span>`) + `</div>`;
+    }).join('');
+  }
+  /* Only images and PDFs are ever shown, whatever the record claims: a
+     same-address page built from partner data must not be able to be a web
+     page of its own. */
+  const SAFE_DOC = /^data:(image\/(?:jpeg|png|webp)|application\/pdf);base64,([A-Za-z0-9+/=]+)$/;
+  async function openDoc(button) {
+    const v = allVendors.find(x => x.id === currentVendorId);
+    const key = button.dataset.key;
+    const row = button.closest('.doc-row');
+    if (!v || !row) return;
+    button.disabled = true;
+    button.textContent = 'Loading…';
+    try {
+      let rec = v.documents && v.documents[key];
+      if (!rec || !rec.data) {
+        const snap = await getDoc(doc(db, 'vendors', v.id, 'documents', key));
+        rec = snap.exists() ? snap.data() : null;
+      }
+      const m = rec && typeof rec.data === 'string' && rec.data.match(SAFE_DOC);
+      if (!m) throw new Error(rec ? 'This file type cannot be shown.' : 'File not found.');
+      const bin = atob(m[2]);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const url = URL.createObjectURL(new Blob([bytes], { type: m[1] }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      a.className = 'doc-open';
+      a.textContent = m[1] === 'application/pdf' ? 'Open PDF' : 'Open full size';
+      button.replaceWith(a);
+      if (m[1] !== 'application/pdf') {
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = (DOC_TYPES.find(d => d.key === key) || {}).label || key;
+        img.className = 'doc-thumb';
+        row.appendChild(img);
+      }
+    } catch (err) {
+      button.disabled = false;
+      button.innerHTML = '<i class="fas fa-eye"></i> View';
+      const e = document.createElement('span');
+      e.className = 'doc-err';
+      e.textContent = err && err.code === 'permission-denied'
+        ? 'Blocked by the database rules: publish the updated firestore.rules.'
+        : (err && err.message) || 'Could not load.';
+      row.appendChild(e);
+    }
+  }
+
   onAuthStateChanged(auth, async (user) => {
     if (!user) { window.location.href = 'admin-login.html'; return; }
     let adminDoc;
@@ -465,11 +546,11 @@
     }
     const rows = vendors.map(v => `
       <tr>
-        <td><div class="vendor-name">${v.firstName||''} ${v.lastName||''}</div><div class="vendor-sub">${v.email||''}</div></td>
-        <td>${v.phone||'–'}</td>
-        <td><div>${v.vehicleModel||'–'}</div><div class="vendor-sub">${v.registrationNumber||''}</div></td>
-        <td>${v.operatingCity||'–'}</td>
-        <td><span class="badge ${v.status||'pending'}"><i class="fas fa-${statusIcons[v.status]||'clock'}"></i> ${(v.status||'pending').charAt(0).toUpperCase()+(v.status||'pending').slice(1)}</span></td>
+        <td><div class="vendor-name">${esc(v.firstName||'')} ${esc(v.lastName||'')}</div><div class="vendor-sub">${esc(v.email||'')}</div></td>
+        <td>${esc(v.phone||'–')}</td>
+        <td><div>${esc(v.vehicleModel||'–')}</div><div class="vendor-sub">${esc(v.registrationNumber||'')}</div></td>
+        <td>${esc(v.operatingCity||'–')}</td>
+        <td><span class="badge ${esc(v.status||'pending')}"><i class="fas fa-${statusIcons[v.status]||'clock'}"></i> ${esc((v.status||'pending').charAt(0).toUpperCase()+(v.status||'pending').slice(1))}</span></td>
         <td>${v.createdAt ? new Date(v.createdAt).toLocaleDateString('en-IN') : '–'}</td>
         <td><button class="btn-view" onclick="openModal('${v.id}')"><i class="fas fa-eye"></i> View</button></td>
       </tr>`).join('');
@@ -508,35 +589,36 @@
 
     document.getElementById('modalBody').innerHTML = `
       <div class="detail-section"><h4>Personal</h4><div class="detail-grid">
-        <div class="detail-item"><label>Full Name</label><span>${v.firstName} ${v.lastName}</span></div>
-        <div class="detail-item"><label>Phone</label><span>${v.phone||'–'}</span></div>
-        <div class="detail-item"><label>Email</label><span>${v.email||'–'}</span></div>
-        <div class="detail-item"><label>Operating City</label><span>${v.operatingCity||'–'}</span></div>
-        <div class="detail-item"><label>Driver Type</label><span>${v.driverType||'–'}</span></div>
+        <div class="detail-item"><label>Full Name</label><span>${esc(v.firstName)} ${esc(v.lastName)}</span></div>
+        <div class="detail-item"><label>Phone</label><span>${esc(v.phone||'–')}</span></div>
+        <div class="detail-item"><label>Email</label><span>${esc(v.email||'–')}</span></div>
+        <div class="detail-item"><label>Operating City</label><span>${esc(v.operatingCity||'–')}</span></div>
+        <div class="detail-item"><label>Driver Type</label><span>${esc(v.driverType||'–')}</span></div>
         <div class="detail-item"><label>Applied</label><span>${v.createdAt ? new Date(v.createdAt).toLocaleString('en-IN') : '–'}</span></div>
       </div></div>
       <div class="detail-section"><h4>Vehicle</h4><div class="detail-grid">
-        <div class="detail-item"><label>Type</label><span>${v.vehicleType||'–'}</span></div>
-        <div class="detail-item"><label>Model</label><span>${v.vehicleModel||'–'}</span></div>
-        <div class="detail-item"><label>Year</label><span>${v.vehicleYear||'–'}</span></div>
-        <div class="detail-item"><label>Reg No.</label><span>${v.registrationNumber||'–'}</span></div>
-        <div class="detail-item"><label>Seating</label><span>${v.seatingCapacity||'–'}</span></div>
-        <div class="detail-item"><label>Fuel</label><span>${v.fuelType||'–'} | AC: ${v.acAvailable==='yes'?'Yes':'No'}</span></div>
+        <div class="detail-item"><label>Type</label><span>${esc(v.vehicleType||'–')}</span></div>
+        <div class="detail-item"><label>Model</label><span>${esc(v.vehicleModel||'–')}</span></div>
+        <div class="detail-item"><label>Year</label><span>${esc(v.vehicleYear||'–')}</span></div>
+        <div class="detail-item"><label>Reg No.</label><span>${esc(v.registrationNumber||'–')}</span></div>
+        <div class="detail-item"><label>Seating</label><span>${esc(v.seatingCapacity||'–')}</span></div>
+        <div class="detail-item"><label>Fuel</label><span>${esc(v.fuelType||'–')} | AC: ${v.acAvailable==='yes'?'Yes':'No'}</span></div>
       </div></div>
       <div class="detail-section"><h4>Documents</h4><div class="detail-grid">
-        <div class="detail-item"><label>Aadhaar</label><span>${v.aadhaarNumber||'–'}</span></div>
-        <div class="detail-item"><label>PAN</label><span>${v.panNumber||'–'}</span></div>
-        <div class="detail-item"><label>DL Number</label><span>${v.dlNumber||'–'}</span></div>
-        <div class="detail-item"><label>DL Expiry</label><span>${v.dlExpiry||'–'}</span></div>
+        <div class="detail-item"><label>Aadhaar</label><span>${esc(v.aadhaarNumber||'–')}</span></div>
+        <div class="detail-item"><label>PAN</label><span>${esc(v.panNumber||'–')}</span></div>
+        <div class="detail-item"><label>DL Number</label><span>${esc(v.dlNumber||'–')}</span></div>
+        <div class="detail-item"><label>DL Expiry</label><span>${esc(v.dlExpiry||'–')}</span></div>
       </div></div>
       <div class="detail-section"><h4>Address</h4><div class="detail-grid">
-        <div class="detail-item"><label>Address</label><span>${v.addressLine1||'–'}${v.addressLine2?', '+v.addressLine2:''}</span></div>
-        <div class="detail-item"><label>City / State</label><span>${v.city||'–'}, ${v.state||'–'} – ${v.pinCode||'–'}</span></div>
+        <div class="detail-item"><label>Address</label><span>${esc(v.addressLine1||'–')}${v.addressLine2?', '+esc(v.addressLine2):''}</span></div>
+        <div class="detail-item"><label>City / State</label><span>${esc(v.city||'–')}, ${esc(v.state||'–')} – ${esc(v.pinCode||'–')}</span></div>
       </div></div>
-      ${v.adminNote ? `<div class="detail-section"><h4>Admin Note</h4><p style="font-size:0.85rem;background:#f8fafc;padding:12px;border-radius:8px;color:#1a2b3c;">${v.adminNote}</p></div>` : ''}
+      <div class="detail-section"><h4>Uploaded Documents</h4><div class="doc-list">${docRows(v)}</div></div>
+      ${v.adminNote ? `<div class="detail-section"><h4>Admin Note</h4><p style="font-size:0.85rem;background:#f8fafc;padding:12px;border-radius:8px;color:#1a2b3c;">${esc(v.adminNote)}</p></div>` : ''}
       <div class="detail-section" style="margin-bottom:0;"><h4>Current Status</h4>
-        <span class="badge ${v.status||'pending'}" style="font-size:0.82rem;padding:6px 14px;">
-          <i class="fas fa-${statusIcons[v.status]||'clock'}"></i> ${(v.status||'pending').toUpperCase()}
+        <span class="badge ${esc(v.status||'pending')}" style="font-size:0.82rem;padding:6px 14px;">
+          <i class="fas fa-${statusIcons[v.status]||'clock'}"></i> ${esc((v.status||'pending').toUpperCase())}
         </span>
       </div>`;
 
@@ -609,6 +691,11 @@
     document.getElementById('modalOverlay').classList.remove('open');
     pendingAction = null; currentVendorId = null;
   };
+
+  document.getElementById('modalBody').addEventListener('click', function (e) {
+    const b = e.target.closest('.doc-view');
+    if (b) openDoc(b);
+  });
 
   document.getElementById('modalOverlay').addEventListener('click', function(e) {
     if (e.target === this) closeModal();

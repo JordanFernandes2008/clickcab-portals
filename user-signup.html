@@ -89,32 +89,32 @@
       <div class="form-row">
         <div class="form-group">
           <label for="firstName">First Name <span class="req">*</span></label>
-          <div class="input-wrap"><i class="fas fa-user ico"></i><input type="text" id="firstName" placeholder="Rahul"/></div>
+          <div class="input-wrap"><i class="fas fa-user ico"></i><input type="text" id="firstName" placeholder="Rahul" autocomplete="given-name"/></div>
         </div>
         <div class="form-group">
           <label for="lastName">Last Name <span class="req">*</span></label>
-          <div class="input-wrap"><i class="fas fa-user ico"></i><input type="text" id="lastName" placeholder="Sharma"/></div>
+          <div class="input-wrap"><i class="fas fa-user ico"></i><input type="text" id="lastName" placeholder="Sharma" autocomplete="family-name"/></div>
         </div>
       </div>
 
       <div class="form-group">
         <label for="phone">Mobile Number <span class="req">*</span></label>
-        <div class="input-wrap"><i class="fas fa-phone ico"></i><input type="tel" id="phone" placeholder="+91 98765 43210"/></div>
+        <div class="input-wrap"><i class="fas fa-phone ico"></i><input type="tel" id="phone" placeholder="+91 98765 43210" autocomplete="tel"/></div>
       </div>
 
       <div class="form-group">
         <label for="email">Email Address <span class="req">*</span></label>
-        <div class="input-wrap"><i class="fas fa-envelope ico"></i><input type="email" id="email" placeholder="you@gmail.com"/></div>
+        <div class="input-wrap"><i class="fas fa-envelope ico"></i><input type="email" id="email" placeholder="you@gmail.com" autocomplete="email"/></div>
       </div>
 
       <div class="form-group">
         <label for="password">Password <span class="req">*</span></label>
-        <div class="input-wrap"><i class="fas fa-lock ico"></i><input type="password" id="password" placeholder="Min. 8 characters"/></div>
+        <div class="input-wrap"><i class="fas fa-lock ico"></i><input type="password" id="password" placeholder="Min. 8 characters" autocomplete="new-password"/></div>
       </div>
 
       <div class="form-group">
         <label for="confirmPw">Confirm Password <span class="req">*</span></label>
-        <div class="input-wrap"><i class="fas fa-lock ico"></i><input type="password" id="confirmPw" placeholder="Repeat password"/></div>
+        <div class="input-wrap"><i class="fas fa-lock ico"></i><input type="password" id="confirmPw" placeholder="Repeat password" autocomplete="new-password"/></div>
       </div>
 
       <p class="terms">By signing up you agree to Click Cabs' <a href="#">Terms of Service</a> and <a href="https://clickcabs.in/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>.</p>
@@ -128,9 +128,8 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getAuth, createUserWithEmailAndPassword, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getAuth, createUserWithEmailAndPassword, deleteUser, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
   const firebaseConfig = {
     apiKey: "AIzaSyCoITUbvm1c0-Ud9VN_jVOZg99dg42jPgY",
     authDomain: "clickcabs-772bd.firebaseapp.com",
@@ -139,57 +138,112 @@
     messagingSenderId: "861153834886",
     appId: "1:861153834886:web:eae295a297c47120c31e07"
   };
-
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
-  await setPersistence(auth, browserLocalPersistence);
+  const MAIN_SITE = /(^|\.)clickcabs\.in$/i.test(location.hostname) ? 'https://clickcabs.in/' : '/';
 
-  function showError(msg) {
-    const el = document.getElementById('errorMsg');
-    document.getElementById('errorText').textContent = msg;
-    el.style.display = 'flex';
-    document.getElementById('successMsg').style.display = 'none';
+  /* Firebase's own error text ("Firebase: Error (auth/invalid-email).") is
+     not meant for customers. Every code a login or sign-up can realistically
+     hit gets a plain sentence; anything else still names the code. */
+  function friendly(err) {
+    const code = (err && err.code) || '';
+    const said = {
+      'auth/invalid-credential': 'Wrong email or password. Please try again.',
+      'auth/wrong-password': 'Wrong email or password. Please try again.',
+      'auth/user-not-found': 'Wrong email or password. Please try again.',
+      'auth/invalid-email': 'That email address does not look right.',
+      'auth/missing-password': 'Please enter your password.',
+      'auth/user-disabled': 'This account has been switched off. Please contact Click Cabs support.',
+      'auth/too-many-requests': 'Too many attempts. Please wait a few minutes and try again.',
+      'auth/network-request-failed': 'Could not connect. Check your internet and try again.',
+      'auth/email-already-in-use': 'This email is already registered. Please log in instead.',
+      'auth/weak-password': 'That password is too weak. Use at least 8 characters.',
+      'auth/operation-not-allowed': 'Sign-in is switched off right now. Please contact Click Cabs support.',
+      'unavailable': 'Could not connect. Check your internet and try again.',
+      'permission-denied': 'The server refused this request. Please contact Click Cabs support.'
+    };
+    return said[code] || ('Something went wrong' + (code ? ' (' + code + ')' : '') + '. Please try again.');
   }
 
-  async function handleSignup() {
-    const firstName = document.getElementById('firstName').value.trim();
-    const lastName = document.getElementById('lastName').value.trim();
-    const phone = document.getElementById('phone').value.trim();
-    const email = document.getElementById('email').value.trim();
-    const password = document.getElementById('password').value;
-    const confirmPw = document.getElementById('confirmPw').value;
+  const btn = document.getElementById('signupBtn');
+  const BTN_IDLE = btn.innerHTML;
+  let busy = false;
 
+  function showError(msg, fieldId) {
+    document.getElementById('errorText').textContent = msg;
+    const box = document.getElementById('errorMsg');
+    box.style.display = 'flex';
+    document.getElementById('successMsg').style.display = 'none';
+    if (fieldId) {
+      const f = document.getElementById(fieldId);
+      f.style.borderColor = '#e03d3d';
+      f.addEventListener('input', () => { f.style.borderColor = ''; }, { once: true });
+      f.focus();
+    }
+    box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+  function idle() { busy = false; btn.innerHTML = BTN_IDLE; btn.disabled = false; }
+
+  const emailOk = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s);
+  const phoneOk = (s) => { const d = s.replace(/\D/g, ''); return d.length >= 10 && d.length <= 13; };
+
+  async function handleSignup() {
+    if (busy) return;
+    const val = id => document.getElementById(id).value;
+    const firstName = val('firstName').trim();
+    const lastName = val('lastName').trim();
+    const phone = val('phone').trim();
+    const email = val('email').trim();
+    const password = val('password');
+    const confirmPw = val('confirmPw');
     document.getElementById('errorMsg').style.display = 'none';
 
-    if (!firstName || !lastName || !phone || !email || !password || !confirmPw) { showError('Please fill in all fields.'); return; }
-    if (password !== confirmPw) { showError('Passwords do not match.'); return; }
-    if (password.length < 8) { showError('Password must be at least 8 characters.'); return; }
+    const missing = ['firstName', 'lastName', 'phone', 'email', 'password', 'confirmPw'].find(id => !val(id).trim());
+    if (missing) { showError('Please fill in all fields.', missing); return; }
+    if (!phoneOk(phone)) { showError('Please enter a valid 10-digit mobile number.', 'phone'); return; }
+    if (!emailOk(email)) { showError('That email address does not look right.', 'email'); return; }
+    if (password.length < 8) { showError('Password must be at least 8 characters.', 'password'); return; }
+    if (password !== confirmPw) { showError('Passwords do not match.', 'confirmPw'); return; }
 
-    const btn = document.getElementById('signupBtn');
+    busy = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating account…';
     btn.disabled = true;
 
+    let cred;
     try {
-      const cred = await createUserWithEmailAndPassword(auth, email, password);
-      await setDoc(doc(db, "users", cred.user.uid), {
+      cred = await createUserWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      idle();
+      showError(friendly(err), err && err.code === 'auth/email-already-in-use' ? 'email' : null);
+      return;
+    }
+    try {
+      await setDoc(doc(db, 'users', cred.user.uid), {
         firstName, lastName, phone, email,
         createdAt: new Date().toISOString(),
-        role: "user"
+        role: 'user'
       });
-      document.getElementById('successMsg').style.display = 'flex';
-      setTimeout(() => { window.location.href = (/(^|\.)clickcabs\.in$/i.test(location.hostname) ? 'https://clickcabs.in/' : '/'); }, 2000);
     } catch (err) {
-      btn.innerHTML = '<i class="fas fa-user-plus"></i> Create Account';
-      btn.disabled = false;
-      if (err.code === 'auth/email-already-in-use') showError('This email is already registered. Please log in.');
-      else if (err.code === 'auth/invalid-email') showError('Please enter a valid email address.');
-      else showError('Error: ' + err.message);
+      /* The login was made but the profile could not be saved. Undo the
+         login, or this email would be stuck for good: "already registered"
+         here and "no customer account" on the login page. */
+      try { await deleteUser(cred.user); } catch (e) { console.warn('rollback failed:', e); }
+      idle();
+      showError('Your account could not be finished. ' + friendly(err));
+      return;
     }
+    document.getElementById('successMsg').style.display = 'flex';
+    setTimeout(() => { window.location.href = MAIN_SITE; }, 1500);
   }
 
-  document.getElementById('signupBtn').addEventListener('click', handleSignup);
-  document.addEventListener('keydown', e => { if (e.key === 'Enter') handleSignup(); });
+  btn.addEventListener('click', handleSignup);
+  /* Enter only from a text field, and never while a sign-up is running: a
+     second press used to start a second sign-up, which then reported
+     "already registered" over the one that had just worked. */
+  document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') handleSignup(); });
+
+  try { await setPersistence(auth, browserLocalPersistence); } catch (e) { console.warn('persistence:', e); }
 </script>
 
 <script type="module">
@@ -222,6 +276,14 @@
       try { localStorage.removeItem('cc_auth_hint'); } catch (e) {}   // the old marker, no longer read
     });
   })();
+
+  /* Links back to the main site name clickcabs.in. On the staging copy the
+     main site is this same address, so point them at its home page. */
+  if (!onProd) {
+    document.querySelectorAll('a[href^="https://clickcabs.in/"]').forEach(a => {
+      a.setAttribute('href', '/' + a.getAttribute('href').slice('https://clickcabs.in/'.length));
+    });
+  }
 </script>
 </body>
 </html>
