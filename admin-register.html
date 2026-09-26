@@ -268,7 +268,7 @@
     btn.disabled = true;
 
     try {
-      const response = await fetch('/api/create-admin', {
+      const response = await fetch('api/create-admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fullName, email, password, secretCode })

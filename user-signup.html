@@ -182,5 +182,30 @@
   document.getElementById('signupBtn').addEventListener('click', handleSignup);
   document.addEventListener('keydown', e => { if (e.key === 'Enter') handleSignup(); });
 </script>
+
+<script type="module">
+  /* Tells the main site that someone is signed in, so its header shows
+     "Log out" instead of "Log in". It stores only the first letter of the
+     email, never the address or any token. Shared with the main site only
+     when this page is opened through it at /account/ (same address, same
+     browser storage). Reuses the Firebase app this page already started. */
+  import { getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  let tries = 0;
+  (function watch() {
+    const app = getApps()[0];
+    if (!app) { if (++tries < 25) setTimeout(watch, 200); return; }
+    onAuthStateChanged(getAuth(app), (user) => {
+      try {
+        if (user) {
+          const s = String(user.displayName || user.email || '?').trim();
+          localStorage.setItem('cc_auth_hint', (s.charAt(0) || '?').toUpperCase());
+        } else {
+          localStorage.removeItem('cc_auth_hint');
+        }
+      } catch (e) { /* private mode: the main site simply shows "Log in" */ }
+    });
+  })();
+</script>
 </body>
 </html>

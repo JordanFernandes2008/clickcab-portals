@@ -353,8 +353,8 @@ const db   = getFirestore(app);
    Hostinger; the .vercel.app copy is staging. Both hold the API key
    server-side — it is never in this file. */
 const MAIL_ENDPOINT = location.hostname.endsWith("vercel.app")
-  ? "/api/send-confirmation"
-  : "/api/send-confirmation.php";
+  ? "api/send-confirmation"
+  : "api/send-confirmation.php";   // relative: also works when served from /account/
 
 const STATUSES = ["new", "contacted", "confirmed", "completed", "cancelled"];
 const WA_NUMBER = "919702290804";
