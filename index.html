@@ -81,6 +81,19 @@
     .admin-link{position:fixed;bottom:18px;right:22px;color:rgba(255,255,255,0.15);font-size:0.68rem;text-decoration:none;display:flex;align-items:center;gap:5px;transition:color 0.2s;}
     .admin-link:hover{color:rgba(255,255,255,0.4);}
     @media(max-width:620px){.cards-row{grid-template-columns:1fr;gap:16px;}.logo-wrap h1{font-size:1.7rem;}.choice-card{padding:26px 20px;}}
+
+    /* The two boxes line up row by row. Their descriptions wrap to different
+       lengths, which pushed one card's list and buttons lower than the
+       other's. Fallback: buttons pinned to the bottom of equal-height cards.
+       Where subgrid exists, icon / title / text / list / buttons share rows
+       across both cards, so every part starts at the same height. */
+    .choice-card{display:flex;flex-direction:column;}
+    .choice-card .btn-group{margin-top:auto;}
+    .card-features{max-width:250px;margin-left:auto;margin-right:auto;width:100%;}
+    @supports (grid-template-rows: subgrid){
+      .choice-card{display:grid;grid-row:span 5;grid-template-rows:subgrid;row-gap:0;}
+      .choice-card .btn-group{margin-top:0;align-self:end;}
+    }
   </style>
 </head>
 <body>
@@ -127,7 +140,8 @@
   <div class="bottom-links">
     <p>© 2026 Click Cabs. All rights reserved.</p>
     <a href="https://clickcabs.in/">Main Site</a>
-    <a href="#">Terms of Service</a>
+    <a href="https://clickcabs.in/terms.html">Terms of Service</a>
+    <a href="https://clickcabs.in/partner-terms.html">Partner Terms</a>
     <a href="https://clickcabs.in/privacy.html">Privacy Policy</a>
   </div>
 </div>
