@@ -126,6 +126,34 @@
     @media(max-width:680px) { .dash-grid { grid-template-columns:1fr; } .upload-grid { grid-template-columns:1fr 1fr; } .blocked-top { padding:32px 24px 24px; } .blocked-actions,.contact-box { margin-left:24px; margin-right:24px; } }
     @media(max-width:440px) { .upload-grid { grid-template-columns:1fr; } }
       .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+    /* ── Refundable deposit pop-up (client's poster) ── */
+    /* margin:auto restores the dialog's own centring, which the page's global margin:0 reset removes */
+    .dep-dialog { margin:auto; border:none; padding:0; border-radius:16px; width:min(560px, calc(100vw - 24px)); max-height:calc(100dvh - 24px);
+                  overflow:auto; box-shadow:0 24px 60px rgba(1,30,48,0.35); color:var(--text); }
+    .dep-dialog::backdrop { background:rgba(1,30,48,0.62); }
+    .dep-inner { padding:18px 20px 16px; }
+    .dep-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:12px; }
+    .dep-kicker { font-size:0.75rem; font-weight:700; color:#1a7f4b; margin-bottom:3px; display:flex; align-items:center; gap:6px; }
+    .dep-head h2 { font-size:1.08rem; font-weight:800; color:var(--blue); line-height:1.3; }
+    .dep-x { background:#f1f5f8; border:none; width:34px; height:34px; border-radius:50%; font-size:1.3rem; line-height:1; color:var(--blue); cursor:pointer; flex-shrink:0; }
+    .dep-x:hover { background:#e2eaf0; }
+    .dep-poster { display:block; width:100%; height:auto; max-height:62vh; object-fit:contain; border-radius:10px; background:#eef3f7; }
+    .dep-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+    .dep-btn { flex:1 1 150px; display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:11px 14px; border-radius:9px;
+               font:inherit; font-size:0.84rem; font-weight:700; text-decoration:none; cursor:pointer; border:1.5px solid transparent; }
+    .dep-pay { background:var(--yellow); color:var(--blue); }
+    .dep-copy { background:#fff; color:var(--blue); border-color:#cfdbe5; }
+    .dep-copy:hover { border-color:var(--blue); }
+    .dep-wa { background:#1fa855; color:#fff; }
+    .dep-wa:hover { background:#188c46; }
+    .dep-btn:focus-visible, .dep-x:focus-visible, .dep-later:focus-visible, .dep-link:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
+    @media (hover:hover) and (pointer:fine) { .dep-pay { display:none; } }   /* desktop: scan the QR with your phone instead */
+    .dep-upi { font-size:0.78rem; color:var(--muted); margin-top:10px; text-align:center; }
+    .dep-upi strong { color:var(--text); user-select:all; }
+    .dep-later { display:block; margin:8px auto 0; background:none; border:none; font:inherit; font-size:0.8rem; color:var(--muted); text-decoration:underline; cursor:pointer; }
+    .dep-link { background:none; border:none; font:inherit; font-size:0.8rem; font-weight:700; color:var(--blue); cursor:pointer; display:inline-flex; align-items:center; gap:6px; padding:4px 0; }
+    .dep-link:hover { text-decoration:underline; }
 </style>
 </head>
 <body>
@@ -145,6 +173,27 @@
 <div id="mainContent">
   <div class="loading-screen"><i class="fas fa-spinner fa-spin"></i><p>Loading your dashboard…</p></div>
 </div>
+
+<dialog id="depositDialog" class="dep-dialog" aria-labelledby="depTitle">
+  <div class="dep-inner">
+    <div class="dep-head">
+      <div>
+        <p class="dep-kicker"><i class="fas fa-circle-check" aria-hidden="true"></i> Documents submitted</p>
+        <h2 id="depTitle">Next: pay the &#8377;5,000 refundable deposit</h2>
+      </div>
+      <button type="button" class="dep-x" data-dep-close aria-label="Close">&times;</button>
+    </div>
+    <img class="dep-poster" data-src="images/refundable-deposit.webp" width="1092" height="1440" decoding="async"
+         alt="Refundable deposit of Rs 5,000 to start a booking with Click Cabs. Scan the QR code with any UPI app (UPI ID goldefleetsolutions@idbi, Gold E Fleet Solutions), pay Rs 5,000, share the payment screenshot on WhatsApp or call +91 97022 90804, and our team will confirm your booking. The amount is fully refundable after successful completion of your booking with Click Cabs." />
+    <div class="dep-actions">
+      <a class="dep-btn dep-pay" id="depPay" href="#"><i class="fas fa-indian-rupee-sign" aria-hidden="true"></i> Pay with a UPI app</a>
+      <button type="button" class="dep-btn dep-copy" id="depCopy"><i class="far fa-copy" aria-hidden="true"></i> Copy UPI ID</button>
+      <a class="dep-btn dep-wa" id="depWa" href="#" target="_blank" rel="noopener"><i class="fab fa-whatsapp" aria-hidden="true"></i> Send payment screenshot</a>
+    </div>
+    <p class="dep-upi">UPI ID: <strong id="depUpiId">goldefleetsolutions@idbi</strong> &middot; Gold E Fleet Solutions</p>
+    <button type="button" class="dep-later" data-dep-close>I&rsquo;ll do this later</button>
+  </div>
+</dialog>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -177,6 +226,7 @@
   ];
 
   let currentUID = null;
+  let currentVendor = null;
   let selectedFiles = {};
   let uploadedDocs = {};
 
@@ -229,6 +279,7 @@
       return;
     }
     const v = snap.data();
+    currentVendor = v;
     // older uploads were kept inside the record itself (v.documents)
     uploadedDocs = Object.assign({}, v.documents || {}, v.docsUploaded || {});
     document.getElementById('vendorNameTag').textContent = `${v.firstName} ${v.lastName}`;
@@ -342,6 +393,7 @@
 
   function renderDashboard(v, uid, status) {
     const isApproved = status === 'approved';
+    if (isApproved) setTimeout(() => { if (typeof loadDepositPoster === 'function') loadDepositPoster(); }, 0);
     document.getElementById('mainContent').innerHTML = `
       <div class="content">
         ${isApproved ? `
@@ -404,7 +456,8 @@
                   <i class="fas fa-cloud-upload-alt"></i> Save Documents
                 </button>
                 <span class="upload-note" id="uploadNote">Select files above then click Save</span>
-              </div>` :
+              </div>
+              <button type="button" class="dep-link" onclick="showDeposit()"><i class="fas fa-indian-rupee-sign" aria-hidden="true"></i> Refundable deposit &amp; payment details</button>` :
               `<div style="text-align:center;padding:32px;color:var(--muted);">
                 <i class="fas fa-lock" style="font-size:2rem;color:#c8d8e4;margin-bottom:12px;display:block;"></i>
                 <p style="font-size:0.85rem;">Document upload will be unlocked once your application is approved.</p>
@@ -576,7 +629,59 @@
     }
     if (failed.length) say(`${saved} saved. Not saved: ${failed.join('; ')}. Click Save Documents to retry.`, 'err');
     else say(`✓ ${saved} document${saved === 1 ? '' : 's'} saved.`, 'ok');
+    if (saved > 0) showDeposit();      // client: show the deposit poster once documents are in
   };
+
+  /* ── Refundable deposit pop-up ─────────────────────────────────────────
+     The client's poster, plus what a partner on a phone needs: a phone
+     cannot scan a QR shown on its own screen. The UPI details are the ones
+     encoded in the poster's QR (checked by decoding it). */
+  const DEPOSIT = { upi: 'goldefleetsolutions@idbi', name: 'GOLD E FLEET SOLUTIONS', amount: '5000.00' };
+  const depDialog = document.getElementById('depositDialog');
+
+  /* Fetch the poster as soon as an approved partner's dashboard is shown, so
+     it is already there when the pop-up opens (on slow mobile data a
+     load-on-open left a blank box). Partners not yet approved never load it. */
+  function loadDepositPoster() {
+    const img = depDialog.querySelector('.dep-poster');
+    if (img && !img.getAttribute('src')) img.setAttribute('src', img.dataset.src);
+  }
+
+  window.showDeposit = function () {
+    loadDepositPoster();
+    const v = currentVendor || {};
+    const who = [v.firstName, v.lastName].filter(Boolean).join(' ');
+    document.getElementById('depPay').href = 'upi://pay?pa=' + DEPOSIT.upi
+      + '&pn=' + encodeURIComponent(DEPOSIT.name) + '&am=' + DEPOSIT.amount
+      + '&cu=INR&tn=' + encodeURIComponent('Click Cabs partner deposit');
+    const lines = ['Hi Click Cabs, I have paid the \u20B95,000 refundable partner deposit.'];
+    if (who) lines.push('Name: ' + who);
+    if (v.email) lines.push('Email: ' + v.email);
+    if (v.registrationNumber) lines.push('Vehicle: ' + v.registrationNumber);
+    lines.push('Sharing the payment screenshot.');
+    document.getElementById('depWa').href = 'https://wa.me/919702290804?text=' + encodeURIComponent(lines.join('\n'));
+    if (typeof depDialog.showModal === 'function') { if (!depDialog.open) depDialog.showModal(); }
+    else depDialog.setAttribute('open', '');
+  };
+
+  depDialog.querySelectorAll('[data-dep-close]').forEach(b => b.addEventListener('click', () => depDialog.close()));
+  depDialog.addEventListener('click', e => { if (e.target === depDialog) depDialog.close(); });   // click outside
+
+  const copyBtn = document.getElementById('depCopy');
+  const COPY_LABEL = copyBtn.innerHTML;
+  copyBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(DEPOSIT.upi);
+      copyBtn.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i> Copied';
+    } catch (e) {
+      const r = document.createRange();
+      r.selectNodeContents(document.getElementById('depUpiId'));
+      getSelection().removeAllRanges(); getSelection().addRange(r);
+      copyBtn.textContent = 'Selected: copy it now';
+    }
+    setTimeout(() => { copyBtn.innerHTML = COPY_LABEL; }, 2500);
+  });
+
   window.doLogout = async function() {
     await signOut(auth); window.location.href = 'vendor-login.html';
   };
